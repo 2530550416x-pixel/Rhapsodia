@@ -31,7 +31,6 @@ button{padding:9px 12px;border:none;border-radius:5px;cursor:pointer;color:#fff;
 table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{border:1px solid #eee;padding:8px;text-align:center;font-size:13px}
 th{background:#f0f5ff}
-/* 7. & 8. 预警物料改为红色字体 */
 .warn-text{color:#ff0000 !important;font-weight:bold}
 .tab{display:none}
 .tab.active{display:block}
@@ -53,9 +52,9 @@ th{background:#f0f5ff}
     <button class="tab-btn" onclick="switchTab(1)" title="切换到出入库历史记录标签页">出入库历史记录</button>
   </div>
 
-  <!-- 1. 库存管理 Tab -->
+  <!-- 库存管理 Tab -->
   <div class="tab active" id="tab0">
-    <!-- 1.1 库存精准查询 -->
+    <!-- 库存精准查询 -->
     <div class="box">
       <div class="title">库存精准查询</div>
       <div class="row">
@@ -67,7 +66,7 @@ th{background:#f0f5ff}
       </div>
     </div>
 
-    <!-- 1.2 筛选结果清单 (3. 移除操作列) -->
+    <!-- 筛选结果清单 -->
     <div class="box">
       <div class="title">筛选结果清单 <span style="color:red">红色字体 = 低于预警库存</span></div>
       <table>
@@ -89,13 +88,12 @@ th{background:#f0f5ff}
           </tr>
         </thead>
         <tbody id="stockTable">
-          <!-- 2. 默认不显示数据 -->
           <tr class="empty-row"><td colspan="9" style="color:#999">暂无数据，请点击查询</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- 1.3 备件入库 / 领用出库 -->
+    <!-- 备件入库 / 领用出库 -->
     <div class="box">
       <div class="title">备件入库 / 领用出库</div>
       <div class="row">
@@ -167,7 +165,6 @@ th{background:#f0f5ff}
       <div class="title"> 备件信息录入 <span class="fold-btn" onclick="toggleFold()" title="展开/折叠备件信息录入区域">点击展开/折叠</span> </div>
       <div class="fold-content fold-close" id="inputFold">
         <div class="row">
-          <!-- 问题3修复：添加aria-label和title -->
           <select id="wareArea" aria-label="仓库分区选择" title="选择备件所属的仓库分区"></select>
           <input type="text" id="spName" placeholder="备件名称" title="输入新备件的名称">
           <input type="text" id="spModel" placeholder="备件型号" title="输入新备件的型号">
@@ -204,7 +201,7 @@ th{background:#f0f5ff}
     </div>
   </div>
 
-  <!-- 4. 出入库历史记录 Tab -->
+  <!-- 出入库历史记录 Tab -->
   <div class="tab" id="tab1">
     <div class="box">
       <div class="title">出入库流水记录</div>
@@ -224,11 +221,11 @@ th{background:#f0f5ff}
             <th>操作时间</th>
             <th>操作类型</th>
             <th>备件名称</th>
-            <th>型号</th> <!-- 5. 增加型号列 -->
+            <th>型号</th>
             <th>所属设备</th>
-            <th>变动数量</th> <!-- 6. 变动数量 +/- -->
+            <th>变动数量</th>
             <th>操作备注</th>
-            <th>操作</th> <!-- 4. 单条删除按钮列 -->
+            <th>操作</th>
           </tr>
         </thead>
         <tbody id="historyTable"></tbody>
@@ -247,53 +244,20 @@ function initBaseData(){
   if(!localStorage.getItem(AREA_KEY)){
     localStorage.setItem(AREA_KEY,JSON.stringify(["A区货架","B区货架","C区耗材区","备品专库区","室外堆放区"]));
   }
-  renderAreaSelect(); // 渲染下拉框
-  renderAreaTags();   // 渲染分区标签
+  if(!localStorage.getItem(HISTORY_KEY)){
+    localStorage.setItem(HISTORY_KEY,JSON.stringify([]));
+  }
+  if(!localStorage.getItem(STOCK_KEY)){
+    localStorage.setItem(STOCK_KEY,JSON.stringify([]));
+  }
+  renderAreaSelect();
+  renderAreaTags();
 }
-
-// 修复问题1：完整渲染仓库分区下拉框
-function renderAreaSelect() {
-  const areaSelect = document.getElementById('wareArea');
-  areaSelect.innerHTML = ''; // 清空原有选项
-  const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
-  if (areas.length === 0) return;
-  
-  // 添加默认提示选项
-  const defaultOption = document.createElement('option');
-  defaultOption.value = '';
-  defaultOption.textContent = '请选择仓库分区';
-  areaSelect.appendChild(defaultOption);
-  
-  // 添加所有分区选项
-  areas.forEach(area => {
-    const option = document.createElement('option');
-    option.value = area;
-    option.textContent = area;
-    areaSelect.appendChild(option);
-  });
-}
-
-// 修复问题1：完整渲染仓库分区标签
-function renderAreaTags() {
-  const areaTagList = document.getElementById('areaTagList');
-  areaTagList.innerHTML = '';
-  const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
-  
-  areas.forEach(area => {
-    const tag = document.createElement('span');
-    tag.className = 'tag-item';
-    tag.textContent = area;
-    tag.title = `点击修改/删除分区：${area}`;
-    areaTagList.appendChild(tag);
-  });
-}
-
-// 确保初始化优先执行
-initBaseData();
 
 window.onload=function(){
-  renderAreaSelect(); // 二次确保渲染
-  renderAreaTags();   // 二次确保渲染
+  initBaseData();
+  renderAreaSelect();
+  renderAreaTags();
   renderHistory();
 }
 
@@ -303,8 +267,80 @@ function switchTab(idx){
   if(idx===1) renderHistory();
 }
 
+// ================= 仓库分区管理 =================
+function renderAreaSelect(){
+  const areaSelect = document.getElementById("wareArea");
+  const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
+  areaSelect.innerHTML = "";
+  areas.forEach(area => {
+    const option = document.createElement("option");
+    option.value = area;
+    option.textContent = area;
+    areaSelect.appendChild(option);
+  });
+}
+
+function renderAreaTags(){
+  const areaTagList = document.getElementById("areaTagList");
+  const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
+  areaTagList.innerHTML = "";
+  areas.forEach(area => {
+    const tag = document.createElement("span");
+    tag.className = "tag-item";
+    tag.innerHTML = `${area} 
+      <span style="color:#e74c3c;cursor:pointer;margin-left:5px" onclick="deleteArea('${area}')">×</span>
+      <span style="color:#3498db;cursor:pointer;margin-left:5px" onclick="editArea('${area}')">✎</span>`;
+    areaTagList.appendChild(tag);
+  });
+}
+
+function addWareArea(){
+  const newAreaInput = document.getElementById("newArea");
+  const newArea = newAreaInput.value.trim();
+  if(!newArea){
+    alert("请输入仓库分区名称！");
+    return;
+  }
+  const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
+  if(areas.includes(newArea)){
+    alert("该分区已存在！");
+    newAreaInput.value = "";
+    return;
+  }
+  areas.push(newArea);
+  localStorage.setItem(AREA_KEY, JSON.stringify(areas));
+  newAreaInput.value = "";
+  renderAreaSelect();
+  renderAreaTags();
+  alert("分区添加成功！");
+}
+
+function editArea(oldArea){
+  const newArea = prompt("请输入新的分区名称", oldArea);
+  if(!newArea || newArea.trim() === "") return;
+  const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
+  const index = areas.findIndex(area => area === oldArea);
+  if(index === -1) return;
+  if(areas.includes(newArea.trim())){
+    alert("新分区名称已存在！");
+    return;
+  }
+  areas[index] = newArea.trim();
+  localStorage.setItem(AREA_KEY, JSON.stringify(areas));
+  renderAreaSelect();
+  renderAreaTags();
+}
+
+function deleteArea(area){
+  if(!confirm(`确定删除分区【${area}】吗？`)) return;
+  const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
+  const newAreas = areas.filter(item => item !== area);
+  localStorage.setItem(AREA_KEY, JSON.stringify(newAreas));
+  renderAreaSelect();
+  renderAreaTags();
+}
+
 // ================= 库存管理核心逻辑 =================
-// 【核心修复】使用 String() 包裹输入框的值，完美解决输入纯数字时无法识别的问题
 function searchStock(){
     let dKey = String(document.getElementById("searchDevice").value || '').trim().toLowerCase();
     let sKey = String(document.getElementById("searchSp").value || '').trim().toLowerCase();
@@ -313,17 +349,13 @@ function searchStock(){
     let res = [];
 
     if (dKey === '' && sKey === '') {
-        // 1. 未输入任何条件，仅显示等于或小于预警下限的物料
         res = all.filter(item => item.num <= item.lowWarn);
     } else {
-        // 正常关键字过滤（增强容错）
         res = all.filter(item=>{
-            // 确保原始数据存在且转换为字符串，防止因数据类型不是字符串而报错或失效
             let deviceStr = String(item.device || '').toLowerCase();
             let spNameStr = String(item.spName || '').toLowerCase();
             let modelStr = String(item.model || '').toLowerCase();
             
-            // 只要设备名、备件名、型号中包含任意一个关键字即可匹配
             let matchDev = dKey === '' || deviceStr.includes(dKey);
             let matchSp = sKey === '' || spNameStr.includes(sKey) || modelStr.includes(sKey);
             
@@ -333,13 +365,10 @@ function searchStock(){
     renderTable(res);
 }
 
-// 3. 点击数据行自动选中备件并填充至操作区
 function selectRow(id, name, model) {
   document.getElementById("editId").value = id;
-  console.log(`已选中：${name} (${model})`);
 }
 
-// 3. 移除操作列，点击整行选中；7. & 8. 预警物料改为红色字体
 function renderTable(list){
   let tb = document.getElementById("stockTable");
   tb.innerHTML = "";
@@ -351,13 +380,9 @@ function renderTable(list){
   
   list.forEach(item=>{
     let tr = document.createElement("tr");
-    
-    // 7. & 8. 红色字体预警
     if(item.num <= item.lowWarn) tr.className = "warn-text"; 
     
-    // 3. 给整行添加点击事件
     tr.onclick = function(e) {
-      // 防止点击复选框时触发选中
       if (e.target.type !== 'checkbox') {
         selectRow(item.id, item.spName, item.model);
       }
@@ -380,7 +405,14 @@ function renderTable(list){
 
 function getStockData(){ let d = localStorage.getItem(STOCK_KEY); return d ? JSON.parse(d) : []; }
 function saveStockData(arr){ localStorage.setItem(STOCK_KEY,JSON.stringify(arr)); }
-function checkAllItem(){ let allCheck = document.getElementById("checkAll").checked; let checks = document.querySelectorAll(".rowCheck"); checks.forEach(c=>c.checked = allCheck); }
+function getHistoryData(){ let d = localStorage.getItem(HISTORY_KEY); return d ? JSON.parse(d) : []; }
+function saveHistoryData(arr){ localStorage.setItem(HISTORY_KEY,JSON.stringify(arr)); }
+
+function checkAllItem(){ 
+  let allCheck = document.getElementById("checkAll").checked; 
+  let checks = document.querySelectorAll(".rowCheck"); 
+  checks.forEach(c=>c.checked = allCheck); 
+}
 
 function batchDelete(){
   let checks = document.querySelectorAll(".rowCheck:checked");
@@ -399,12 +431,94 @@ function resetSearch(){
   document.getElementById("checkAll").checked = false;
 }
 
+// ================= 新建备件入库 & ID生成规则：备件名称-型号 =================
+function generateSpId(spName, model) {
+  const name = spName.trim().replace(/\s+/g, "").toLowerCase();
+  const mod = model.trim().replace(/\s+/g, "").toLowerCase();
+  return `${name}-${mod}`;
+}
+
+function addStock(){
+  const wareArea = document.getElementById("wareArea").value;
+  const spName = document.getElementById("spName").value.trim();
+  const spModel = document.getElementById("spModel").value.trim();
+  const deviceName = document.getElementById("deviceName").value.trim();
+  const spNum = parseInt(document.getElementById("spNum").value) || 0;
+  const lowWarn = parseInt(document.getElementById("lowWarn").value) || 5;
+  const position = document.getElementById("position").value.trim();
+
+  if(!wareArea){
+    alert("请选择仓库分区！");
+    return;
+  }
+  if(!spName || !spModel){
+    alert("备件名称和型号不能为空！");
+    return;
+  }
+  if(!deviceName){
+    alert("所属设备名称不能为空！");
+    return;
+  }
+  if(spNum < 0){
+    alert("初始库存不能为负数！");
+    return;
+  }
+
+  const spId = generateSpId(spName, spModel);
+  const stockList = getStockData();
+  const isDuplicate = stockList.some(item => item.id === spId);
+  if(isDuplicate){
+    alert(`该备件【${spName}-${spModel}】已存在！`);
+    return;
+  }
+
+  const newSpare = {
+    id: spId,
+    wareArea,
+    spName,
+    model: spModel,
+    device: deviceName,
+    num: spNum,
+    lowWarn,
+    position
+  };
+
+  stockList.push(newSpare);
+  saveStockData(stockList);
+
+  const hisList = getHistoryData();
+  hisList.unshift({
+    hid: Date.now(),
+    time: new Date().toLocaleString(),
+    type: "初始录入",
+    spName,
+    model: spModel,
+    device: deviceName,
+    changeNum: spNum,
+    note: "新建备件初始入库"
+  });
+  saveHistoryData(hisList);
+
+  document.getElementById("spName").value = "";
+  document.getElementById("spModel").value = "";
+  document.getElementById("deviceName").value = "";
+  document.getElementById("spNum").value = "";
+  document.getElementById("lowWarn").value = "5";
+  document.getElementById("position").value = "";
+
+  alert("新建备件入库成功！");
+  searchStock();
+}
+
 // ================= 入库 / 出库 逻辑 =================
 function stockIn(){
   let id = document.getElementById("editId").value;
   let inNum = parseInt(document.getElementById("changeNum").value);
   let note = document.getElementById("operRemark").value.trim();
-  if(!id||!inNum||!note){alert("请选中备件、填写数量与备注！");return;}
+  if(!id||!inNum||inNum<=0||!note){
+    alert("请选中备件、填写有效数量与备注！");
+    return;
+  }
   
   let list = getStockData();
   let idx = list.findIndex(v=>v.id===id);
@@ -413,14 +527,13 @@ function stockIn(){
   list[idx].num += inNum;
   saveStockData(list);
   
-  // 生成历史记录
   let his = getHistoryData();
   his.unshift({
     hid:Date.now(),
     time:new Date().toLocaleString(),
     type:"增补入库",
     spName:list[idx].spName,
-    model: list[idx].model, // 5. 记录型号
+    model: list[idx].model,
     device:list[idx].device,
     changeNum:inNum,
     note
@@ -437,7 +550,10 @@ function stockOut(){
   let id = document.getElementById("editId").value;
   let outNum = parseInt(document.getElementById("changeNum").value);
   let note = document.getElementById("operRemark").value.trim();
-  if(!id||!outNum||!note){alert("请选中备件、填写数量与备注！");return;}
+  if(!id||!outNum||outNum<=0||!note){
+    alert("请选中备件、填写有效数量与备注！");
+    return;
+  }
   
   let list = getStockData();
   let idx = list.findIndex(v=>v.id===id);
@@ -447,14 +563,13 @@ function stockOut(){
   list[idx].num -= outNum;
   saveStockData(list);
   
-  // 生成历史记录
   let his = getHistoryData();
   his.unshift({
     hid:Date.now(),
     time:new Date().toLocaleString(),
     type:"领用出库",
     spName:list[idx].spName,
-    model: list[idx].model, // 5. 记录型号
+    model: list[idx].model,
     device:list[idx].device,
     changeNum:outNum,
     note
@@ -470,19 +585,16 @@ function stockOut(){
   }
 }
 
-// ================= 历史记录模块 (4, 5, 6) =================
+// ================= 历史记录模块 =================
 function renderHistory(){
   let hisList = getHistoryData();
   let tb = document.getElementById("historyTable");
   tb.innerHTML="";
   
-  // 【核心修复】严格按照操作时间降序排列（最新的在最上面）
-  // 将时间字符串转为 Date 对象进行比较，确保无论何时添加的数据都能正确排序
   hisList.sort((a, b) => new Date(b.time) - new Date(a.time));
   
   hisList.forEach(h=>{
     let tr=document.createElement("tr");
-    // 6. 变动数量 +/-
     let numDisplay = h.type.includes("入库") || h.type.includes("录入") ? `+${h.changeNum}` : `-${h.changeNum}`;
     tr.innerHTML=`
       <td><input type="checkbox" class="check-item rowCheckHis" value="${h.hid}" title="选中该条历史记录"></td>
@@ -490,11 +602,11 @@ function renderHistory(){
       <td>${h.time}</td>
       <td>${h.type}</td>
       <td>${h.spName}</td>
-      <td>${h.model || '-'}</td> <!-- 5. 型号列 -->
+      <td>${h.model || '-'}</td>
       <td>${h.device}</td>
-      <td>${numDisplay}</td> <!-- 6. 变动数量 -->
+      <td>${numDisplay}</td>
       <td>${h.note}</td>
-      <td><button class="btn-del btn-sm" onclick="deleteHistory(${h.hid})" title="删除该条出入库历史记录">删除</button></td> <!-- 4. 单条删除 -->
+      <td><button class="btn-del btn-sm" onclick="deleteHistory(${h.hid})" title="删除该条出入库历史记录">删除</button></td>
     `;
     tb.appendChild(tr);
   });
@@ -506,7 +618,6 @@ function checkAllHistory(){
   checks.forEach(c=>c.checked = allCheck);
 }
 
-// 4. 批量删除历史记录
 function batchDeleteHistory(){
   let checks = document.querySelectorAll(".rowCheckHis:checked");
   if(checks.length === 0){ alert("请先勾选要删除的记录"); return; }
@@ -519,80 +630,35 @@ function batchDeleteHistory(){
   his = his.filter(item => !delIds.includes(item.hid));
   
   saveHistoryData(his);
-  renderHistory(); // 4. 实时刷新
+  renderHistory();
   document.getElementById("checkAllHis").checked = false;
   alert("批量删除成功！");
 }
 
-// 4. 单条删除历史记录
 function deleteHistory(hid){
   if(!confirm("确定要删除此条记录吗？")) return;
   let his = getHistoryData();
   let filtered = his.filter(item => item.hid !== hid);
   saveHistoryData(filtered);
-  renderHistory(); // 4. 实时刷新
+  renderHistory();
 }
 
-function getHistoryData(){ let d = localStorage.getItem(HISTORY_KEY); return d ? JSON.parse(d) : []; }
-function saveHistoryData(arr){ localStorage.setItem(HISTORY_KEY,JSON.stringify(arr)); }
-
-// ================= 导出 Excel =================
-function exportStockExcel(){
-  let data=getStockData();
-  if(data.length===0){alert("暂无数据");return;}
-  let exportData = data.map(item => ({
-    ID: item.id, 仓库分区: item.wareArea, 所属设备: item.device, 
-    备件名称: item.spName, 型号: item.model, 库存: item.num, 
-    预警下限: item.lowWarn, 存放位置: item.position
-  }));
-  const ws = XLSX.utils.json_to_sheet(exportData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "库存总表");
-  XLSX.writeFile(wb, `备件库存总表_${new Date().toLocaleDateString()}.xlsx`);
-}
-
-function exportHistoryExcel(){
-  let data=getHistoryData();
-  if(data.length===0){alert("暂无历史记录");return;}
-  let exportData = data.map(item => ({
-    流水编号: item.hid, 操作时间: item.time, 操作类型: item.type,
-    备件名称: item.spName, 型号: item.model, 所属设备: item.device,
-    变动数量: item.changeNum, 操作备注: item.note
-  }));
-  const ws = XLSX.utils.json_to_sheet(exportData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "出入库历史");
-  XLSX.writeFile(wb, `出入库历史记录_${new Date().toLocaleDateString()}.xlsx`);
-}
-
-// ================= 折叠/展开 逻辑 =================
-function toggleFold() {
-  const foldContent = document.getElementById('inputFold');
-  foldContent.classList.toggle('fold-close');
-  foldContent.classList.toggle('fold-open');
-}
-
-function toggleBaseFold() {
-  const foldContent = document.getElementById('baseFold');
-  foldContent.classList.toggle('fold-close');
-  foldContent.classList.toggle('fold-open');
-}
-
-// ================= 库存总表 逻辑 =================
-function openAllStockTable() {
-  const box = document.getElementById('allStockBox');
-  box.style.display = 'block';
-  const data = getStockData();
-  const tbody = document.getElementById('allStockTableBody');
-  tbody.innerHTML = '';
+// ================= 库存总表 =================
+function openAllStockTable(){
+  const allStockBox = document.getElementById("allStockBox");
+  const tableBody = document.getElementById("allStockTableBody");
+  allStockBox.style.display = "block";
   
-  if(data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="color:#999">暂无库存数据</td></tr>';
+  const stockList = getStockData();
+  tableBody.innerHTML = "";
+  
+  if(stockList.length === 0){
+    tableBody.innerHTML = '<tr><td colspan="9" style="color:#999;text-align:center">暂无库存数据</td></tr>';
     return;
   }
   
-  data.forEach(item => {
-    const tr = document.createElement('tr');
+  stockList.forEach(item => {
+    const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${item.id}</td>
       <td>${item.wareArea}</td>
@@ -604,201 +670,220 @@ function openAllStockTable() {
       <td>${item.position}</td>
       <td><button class="btn-edit-text btn-sm" onclick="openEditModal('${item.id}')" title="编辑该备件信息">编辑</button></td>
     `;
-    tbody.appendChild(tr);
+    tableBody.appendChild(tr);
   });
 }
 
-function hideAllStockTable() {
-  document.getElementById('allStockBox').style.display = 'none';
+function hideAllStockTable(){
+  document.getElementById("allStockBox").style.display = "none";
 }
 
-// ================= 编辑备件 逻辑 =================
-function openEditModal(id) {
-  const data = getStockData();
-  const item = data.find(v => v.id === id);
+// ================= 编辑弹窗 =================
+function openEditModal(id){
+  const stockList = getStockData();
+  const item = stockList.find(item => item.id === id);
   if(!item) return;
   
-  document.getElementById('modalEditId').value = item.id;
-  document.getElementById('modalWareArea').value = item.wareArea;
-  document.getElementById('modalDevice').value = item.device;
-  document.getElementById('modalSpName').value = item.spName;
-  document.getElementById('modalModel').value = item.model;
-  document.getElementById('modalNum').value = item.num;
-  document.getElementById('modalWarn').value = item.lowWarn;
-  document.getElementById('modalPos').value = item.position;
+  document.getElementById("modalEditId").value = id;
+  document.getElementById("modalWareArea").value = item.wareArea;
+  document.getElementById("modalDevice").value = item.device;
+  document.getElementById("modalSpName").value = item.spName;
+  document.getElementById("modalModel").value = item.model;
+  document.getElementById("modalNum").value = item.num;
+  document.getElementById("modalWarn").value = item.lowWarn;
+  document.getElementById("modalPos").value = item.position;
   
-  document.getElementById('editModal').style.display = 'block';
+  document.getElementById("editModal").style.display = "block";
 }
 
-function closeEditModal() {
-  document.getElementById('editModal').style.display = 'none';
+function closeEditModal(){
+  document.getElementById("editModal").style.display = "none";
 }
 
-function saveEditInfo() {
-  const id = document.getElementById('modalEditId').value;
-  const wareArea = document.getElementById('modalWareArea').value.trim();
-  const device = document.getElementById('modalDevice').value.trim();
-  const spName = document.getElementById('modalSpName').value.trim();
-  const model = document.getElementById('modalModel').value.trim();
-  const num = parseInt(document.getElementById('modalNum').value);
-  const lowWarn = parseInt(document.getElementById('modalWarn').value);
-  const position = document.getElementById('modalPos').value.trim();
+function saveEditInfo(){
+  const id = document.getElementById("modalEditId").value;
+  const wareArea = document.getElementById("modalWareArea").value.trim();
+  const device = document.getElementById("modalDevice").value.trim();
+  const spName = document.getElementById("modalSpName").value.trim();
+  const model = document.getElementById("modalModel").value.trim();
+  const num = parseInt(document.getElementById("modalNum").value) || 0;
+  const warn = parseInt(document.getElementById("modalWarn").value) || 0;
+  const pos = document.getElementById("modalPos").value.trim();
   
-  if(!wareArea || !device || !spName || !model || isNaN(num) || isNaN(lowWarn) || !position) {
-    alert('请填写所有必填字段！');
+  if(!wareArea || !device || !spName || !model){
+    alert("必填项不能为空！");
     return;
   }
   
-  const data = getStockData();
-  const idx = data.findIndex(v => v.id === id);
+  const stockList = getStockData();
+  const idx = stockList.findIndex(item => item.id === id);
   if(idx === -1) return;
   
-  data[idx] = {
-    ...data[idx],
-    wareArea, device, spName, model, num, lowWarn, position
+  stockList[idx] = {
+    ...stockList[idx],
+    wareArea,
+    device,
+    spName,
+    model,
+    num,
+    lowWarn: warn,
+    position
   };
   
-  saveStockData(data);
+  saveStockData(stockList);
   closeEditModal();
   searchStock();
-  if(document.getElementById('allStockBox').style.display === 'block') {
+  if(document.getElementById("allStockBox").style.display === "block"){
     openAllStockTable();
   }
-  alert('修改成功！');
+  alert("修改成功！");
 }
 
-// ================= 新增仓库分区 逻辑 =================
-function addWareArea() {
-  const newArea = document.getElementById('newArea').value.trim();
-  if(!newArea) {
-    alert('请输入仓库分区名称！');
-    return;
-  }
-  
-  const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
-  if(areas.includes(newArea)) {
-    alert('该分区已存在！');
-    return;
-  }
-  
-  areas.push(newArea);
-  localStorage.setItem(AREA_KEY, JSON.stringify(areas));
-  renderAreaSelect();
-  renderAreaTags();
-  document.getElementById('newArea').value = '';
-  alert('分区添加成功！');
+// ================= 折叠/展开 =================
+function toggleFold(){
+  const foldContent = document.getElementById("inputFold");
+  foldContent.classList.toggle("fold-close");
+  foldContent.classList.toggle("fold-open");
 }
 
-// ================= 导入Excel 逻辑 =================
-function importExcelData() {
-  const file = document.getElementById('importFile').files[0];
+function toggleBaseFold(){
+  const foldContent = document.getElementById("baseFold");
+  foldContent.classList.toggle("fold-close");
+  foldContent.classList.toggle("fold-open");
+}
+
+// ================= 导入/导出Excel =================
+function exportStockExcel(){
+  let data=getStockData();
+  if(data.length===0){alert("暂无数据");return;}
+  let exportData = data.map(item => ({
+    ID: item.id,
+    仓库分区: item.wareArea,
+    所属设备: item.device,
+    备件名称: item.spName,
+    型号: item.model,
+    库存: item.num,
+    预警下限: item.lowWarn,
+    存放位置: item.position
+  }));
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "库存总表");
+  XLSX.writeFile(wb, `备件库存表_${new Date().toLocaleDateString()}.xlsx`);
+}
+
+function exportHistoryExcel(){
+  let data=getHistoryData();
+  if(data.length===0){alert("暂无历史记录");return;}
+  let exportData = data.map(item => ({
+    流水编号: item.hid,
+    操作时间: item.time,
+    操作类型: item.type,
+    备件名称: item.spName,
+    型号: item.model || '-',
+    所属设备: item.device,
+    变动数量: item.changeNum,
+    操作备注: item.note || '-'
+  }));
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "出入库历史");
+  XLSX.writeFile(wb, `出入库历史_${new Date().toLocaleDateString()}.xlsx`);
+}
+
+function importExcelData(){
+  const file = document.getElementById("importFile").files[0];
   if(!file) return;
-  
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
       const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: 'array' });
+      const wb = XLSX.read(data, { type: "array" });
       const wsname = wb.SheetNames[0];
       const ws = wb.Sheets[wsname];
       const json = XLSX.utils.sheet_to_json(ws);
       
-      if(json.length === 0) {
-        alert('Excel文件无数据！');
+      if(json.length === 0){
+        alert("Excel文件中无数据！");
         return;
       }
       
-      const stockData = getStockData();
+      const requiredFields = ["仓库分区", "备件名称", "型号", "所属设备", "数量", "预警数", "存放位置"];
+      const firstRow = json[0];
+      const hasAllFields = requiredFields.every(field => firstRow.hasOwnProperty(field));
+      if(!hasAllFields){
+        alert(`Excel模板字段缺失！必填字段：${requiredFields.join("、")}`);
+        return;
+      }
+      
+      const stockList = getStockData();
+      const hisList = getHistoryData();
       let successCount = 0;
+      let failCount = 0;
+      
       json.forEach(item => {
-        // 模板字段：仓库分区、备件名称、型号、所属设备、数量、预警数、存放位置
-        const wareArea = item['仓库分区'] || '';
-        const spName = item['备件名称'] || '';
-        const model = item['型号'] || '';
-        const device = item['所属设备'] || '';
-        const num = parseInt(item['数量']) || 0;
-        const lowWarn = parseInt(item['预警数']) || 5;
-        const position = item['存放位置'] || '';
-        
-        if(!wareArea || !spName || !model || !device || !position) return;
-        
-        const id = Date.now() + '_' + Math.floor(Math.random() * 1000);
-        stockData.push({
-          id, wareArea, spName, model, device, num, lowWarn, position
-        });
-        successCount++;
-        
-        // 生成入库历史记录
-        const his = getHistoryData();
-        his.unshift({
-          hid: Date.now() + '_' + Math.floor(Math.random() * 1000),
-          time: new Date().toLocaleString(),
-          type: 'Excel批量录入',
-          spName, model, device,
-          changeNum: num,
-          note: 'Excel批量导入'
-        });
-        saveHistoryData(his);
+        try {
+          const wareArea = item["仓库分区"];
+          const spName = item["备件名称"].trim();
+          const model = item["型号"].trim();
+          const device = item["所属设备"].trim();
+          const num = parseInt(item["数量"]) || 0;
+          const warn = parseInt(item["预警数"]) || 5;
+          const position = item["存放位置"].trim();
+          
+          if(!wareArea || !spName || !model || !device){
+            failCount++;
+            return;
+          }
+          
+          const spId = generateSpId(spName, model);
+          const existingIdx = stockList.findIndex(sp => sp.id === spId);
+          
+          if(existingIdx !== -1){
+            stockList[existingIdx].num += num;
+            stockList[existingIdx].lowWarn = warn;
+            stockList[existingIdx].position = position;
+            stockList[existingIdx].wareArea = wareArea;
+          } else {
+            stockList.push({
+              id: spId,
+              wareArea,
+              spName,
+              model,
+              device,
+              num,
+              lowWarn: warn,
+              position
+            });
+          }
+          
+          hisList.unshift({
+            hid: Date.now() + successCount,
+            time: new Date().toLocaleString(),
+            type: "Excel导入",
+            spName,
+            model,
+            device,
+            changeNum: num,
+            note: "Excel批量导入"
+          });
+          
+          successCount++;
+        } catch (err) {
+          failCount++;
+        }
       });
       
-      saveStockData(stockData);
-      alert(`成功导入 ${successCount} 条备件数据！`);
-      document.getElementById('importFile').value = '';
+      saveStockData(stockList);
+      saveHistoryData(hisList);
+      document.getElementById("importFile").value = "";
+      alert(`导入完成！成功：${successCount} 条，失败：${failCount} 条`);
       searchStock();
     } catch (err) {
-      alert('Excel解析失败，请检查文件格式！');
-      console.error(err);
+      alert(`导入失败：${err.message}`);
     }
   };
   reader.readAsArrayBuffer(file);
-}
-
-// ================= 新增备件 逻辑 =================
-function addStock() {
-  const wareArea = document.getElementById('wareArea').value;
-  const spName = document.getElementById('spName').value.trim();
-  const model = document.getElementById('spModel').value.trim();
-  const device = document.getElementById('deviceName').value.trim();
-  const num = parseInt(document.getElementById('spNum').value);
-  const lowWarn = parseInt(document.getElementById('lowWarn').value);
-  const position = document.getElementById('position').value.trim();
-  
-  if(!wareArea || !spName || !model || !device || isNaN(num) || isNaN(lowWarn) || !position) {
-    alert('请填写所有必填字段！');
-    return;
-  }
-  
-  const stockData = getStockData();
-  const id = Date.now() + '_' + Math.floor(Math.random() * 1000);
-  
-  stockData.push({
-    id, wareArea, spName, model, device, num, lowWarn, position
-  });
-  
-  saveStockData(stockData);
-  
-  // 生成历史记录
-  const his = getHistoryData();
-  his.unshift({
-    hid: Date.now() + '_' + Math.floor(Math.random() * 1000),
-    time: new Date().toLocaleString(),
-    type: '手动新增入库',
-    spName, model, device,
-    changeNum: num,
-    note: '手动新增备件'
-  });
-  saveHistoryData(his);
-  
-  alert('备件新增入库成功！');
-  // 清空表单
-  document.getElementById('wareArea').value = '';
-  document.getElementById('spName').value = '';
-  document.getElementById('spModel').value = '';
-  document.getElementById('deviceName').value = '';
-  document.getElementById('spNum').value = '';
-  document.getElementById('lowWarn').value = 5;
-  document.getElementById('position').value = '';
-  searchStock();
 }
 </script>
 </body>
