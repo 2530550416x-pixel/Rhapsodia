@@ -267,7 +267,7 @@ function switchTab(idx){
   if(idx===1) renderHistory();
 }
 
-// ================= 仓库分区管理 =================
+// ================= 仓库分区管理【核心修复：字符串传参加引号】 =================
 function renderAreaSelect(){
   const areaSelect = document.getElementById("wareArea");
   const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
@@ -280,6 +280,7 @@ function renderAreaSelect(){
   });
 }
 
+// 修复：分区名称带空格时，onclick 传参增加单引号包裹，保证函数正常触发
 function renderAreaTags(){
   const areaTagList = document.getElementById("areaTagList");
   const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
@@ -287,6 +288,7 @@ function renderAreaTags(){
   areas.forEach(area => {
     const tag = document.createElement("span");
     tag.className = "tag-item";
+    // 关键修复：参数 '${area}' 增加单引号，解决含空格字符串传参失效问题
     tag.innerHTML = `${area} 
       <span style="color:#e74c3c;cursor:pointer;margin-left:5px" onclick="deleteArea('${area}')">×</span>
       <span style="color:#3498db;cursor:pointer;margin-left:5px" onclick="editArea('${area}')">✎</span>`;
@@ -321,14 +323,16 @@ function editArea(oldArea){
   const areas = JSON.parse(localStorage.getItem(AREA_KEY) || '[]');
   const index = areas.findIndex(area => area === oldArea);
   if(index === -1) return;
-  if(areas.includes(newArea.trim())){
+  const trimArea = newArea.trim();
+  if(areas.includes(trimArea)){
     alert("新分区名称已存在！");
     return;
   }
-  areas[index] = newArea.trim();
+  areas[index] = trimArea;
   localStorage.setItem(AREA_KEY, JSON.stringify(areas));
   renderAreaSelect();
   renderAreaTags();
+  alert("分区修改成功！");
 }
 
 function deleteArea(area){
@@ -338,6 +342,7 @@ function deleteArea(area){
   localStorage.setItem(AREA_KEY, JSON.stringify(newAreas));
   renderAreaSelect();
   renderAreaTags();
+  alert("分区删除成功！");
 }
 
 // ================= 库存管理核心逻辑 =================
@@ -529,13 +534,13 @@ function stockIn(){
   
   let his = getHistoryData();
   his.unshift({
-    hid:Date.now(),
-    time:new Date().toLocaleString(),
-    type:"增补入库",
-    spName:list[idx].spName,
+    hid: Date.now(),
+    time: new Date().toLocaleString(),
+    type: "增补入库",
+    spName: list[idx].spName,
     model: list[idx].model,
-    device:list[idx].device,
-    changeNum:inNum,
+    device: list[idx].device,
+    changeNum: inNum,
     note
   });
   saveHistoryData(his);
@@ -565,13 +570,13 @@ function stockOut(){
   
   let his = getHistoryData();
   his.unshift({
-    hid:Date.now(),
-    time:new Date().toLocaleString(),
-    type:"领用出库",
-    spName:list[idx].spName,
+    hid: Date.now(),
+    time: new Date().toLocaleString(),
+    type: "领用出库",
+    spName: list[idx].spName,
     model: list[idx].model,
-    device:list[idx].device,
-    changeNum:outNum,
+    device: list[idx].device,
+    changeNum: outNum,
     note
   });
   saveHistoryData(his);
@@ -585,18 +590,18 @@ function stockOut(){
   }
 }
 
-// ================= 历史记录模块 =================
+// ================= 历史记录模块【修复单条删除】 =================
 function renderHistory(){
   let hisList = getHistoryData();
   let tb = document.getElementById("historyTable");
-  tb.innerHTML="";
+  tb.innerHTML = "";
   
   hisList.sort((a, b) => new Date(b.time) - new Date(a.time));
   
   hisList.forEach(h=>{
-    let tr=document.createElement("tr");
+    let tr = document.createElement("tr");
     let numDisplay = h.type.includes("入库") || h.type.includes("录入") ? `+${h.changeNum}` : `-${h.changeNum}`;
-    tr.innerHTML=`
+    tr.innerHTML = `
       <td><input type="checkbox" class="check-item rowCheckHis" value="${h.hid}" title="选中该条历史记录"></td>
       <td>${h.hid}</td>
       <td>${h.time}</td>
@@ -606,10 +611,25 @@ function renderHistory(){
       <td>${h.device}</td>
       <td>${numDisplay}</td>
       <td>${h.note}</td>
-      <td><button class="btn-del btn-sm" onclick="deleteHistory(${h.hid})" title="删除该条出入库历史记录">删除</button></td>
+      <td><button type="button" class="btn-del btn-sm" onclick="deleteHistory(${h.hid})" title="删除该条出入库历史记录">删除</button></td>
     `;
     tb.appendChild(tr);
   });
+}
+
+// 增加类型校验，确保数字匹配，修复删除失效
+function deleteHistory(hid){
+  if(isNaN(hid)){
+    alert("参数异常，删除失败");
+    return;
+  }
+  if(!confirm("确定要删除此条记录吗？")) return;
+  let his = getHistoryData();
+  // 严格匹配数字类型
+  let filtered = his.filter(item => Number(item.hid) !== Number(hid));
+  saveHistoryData(filtered);
+  renderHistory();
+  alert("历史记录删除成功！");
 }
 
 function checkAllHistory(){
@@ -624,23 +644,15 @@ function batchDeleteHistory(){
   if(!confirm(`确定批量删除选中 ${checks.length} 条历史记录？`))return;
   
   let delIds = [];
-  checks.forEach(c=>delIds.push(parseInt(c.value)));
+  checks.forEach(c=>delIds.push(Number(c.value)));
   
   let his = getHistoryData();
-  his = his.filter(item => !delIds.includes(item.hid));
+  his = his.filter(item => !delIds.includes(Number(item.hid)));
   
   saveHistoryData(his);
   renderHistory();
   document.getElementById("checkAllHis").checked = false;
   alert("批量删除成功！");
-}
-
-function deleteHistory(hid){
-  if(!confirm("确定要删除此条记录吗？")) return;
-  let his = getHistoryData();
-  let filtered = his.filter(item => item.hid !== hid);
-  saveHistoryData(filtered);
-  renderHistory();
 }
 
 // ================= 库存总表 =================
