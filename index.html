@@ -449,35 +449,28 @@ function addStock(){
   const spModel = document.getElementById("spModel").value.trim();
   const deviceName = document.getElementById("deviceName").value.trim();
   const spNum = parseInt(document.getElementById("spNum").value) || 0;
-  const lowWarn = parseInt(document.getElementById("lowWarn").value) || 5;
+  const lowWarn = parseInt(document.getElementById("lowWarn").value) || 0;
   const position = document.getElementById("position").value.trim();
 
-  if(!wareArea){
-    alert("请选择仓库分区！");
-    return;
-  }
-  if(!spName || !spModel){
-    alert("备件名称和型号不能为空！");
-    return;
-  }
-  if(!deviceName){
-    alert("所属设备名称不能为空！");
-    return;
-  }
-  if(spNum < 0){
-    alert("初始库存不能为负数！");
+  // 校验必填项
+  if(!spName || !spModel || !deviceName || !position){
+    alert("备件名称、型号、所属设备、存放位置为必填项！");
     return;
   }
 
+  // 生成ID
   const spId = generateSpId(spName, spModel);
   const stockList = getStockData();
-  const isDuplicate = stockList.some(item => item.id === spId);
-  if(isDuplicate){
-    alert(`该备件【${spName}-${spModel}】已存在！`);
+
+  // 检查是否已存在相同ID的备件
+  const existItem = stockList.find(item => item.id === spId);
+  if(existItem){
+    alert(`该备件【${spName} - ${spModel}】已存在，请勿重复添加！`);
     return;
   }
 
-  const newSpare = {
+  // 新增备件
+  stockList.push({
     id: spId,
     wareArea,
     spName,
@@ -486,24 +479,14 @@ function addStock(){
     num: spNum,
     lowWarn,
     position
-  };
-
-  stockList.push(newSpare);
-  saveStockData(stockList);
-
-  const hisList = getHistoryData();
-  hisList.unshift({
-    hid: Date.now(),
-    time: new Date().toLocaleString(),
-    type: "初始录入",
-    spName,
-    model: spModel,
-    device: deviceName,
-    changeNum: spNum,
-    note: "新建备件初始入库"
   });
-  saveHistoryData(hisList);
 
+  saveStockData(stockList);
+  
+  // 记录入库历史
+  addHistoryRecord(spId, spName, spModel, deviceName, spNum, "入库", "新增备件初始入库");
+
+  // 清空输入框
   document.getElementById("spName").value = "";
   document.getElementById("spModel").value = "";
   document.getElementById("deviceName").value = "";
@@ -511,166 +494,188 @@ function addStock(){
   document.getElementById("lowWarn").value = "5";
   document.getElementById("position").value = "";
 
-  alert("新建备件入库成功！");
+  alert("备件新增入库成功！");
   searchStock();
 }
 
-// ================= 入库 / 出库 逻辑 =================
+// ================= 入库/出库操作 =================
 function stockIn(){
-  let id = document.getElementById("editId").value;
-  let inNum = parseInt(document.getElementById("changeNum").value);
-  let note = document.getElementById("operRemark").value.trim();
-  if(!id||!inNum||inNum<=0||!note){
-    alert("请选中备件、填写有效数量与备注！");
+  const spId = document.getElementById("editId").value.trim();
+  const changeNum = parseInt(document.getElementById("changeNum").value) || 0;
+  const operRemark = document.getElementById("operRemark").value.trim() || "无备注";
+
+  if(!spId){
+    alert("请先选中要操作的备件！");
     return;
   }
-  
-  let list = getStockData();
-  let idx = list.findIndex(v=>v.id===id);
-  if(idx===-1){alert("未找到备件");return;}
-  
-  list[idx].num += inNum;
-  saveStockData(list);
-  
-  let his = getHistoryData();
-  his.unshift({
-    hid: Date.now(),
-    time: new Date().toLocaleString(),
-    type: "增补入库",
-    spName: list[idx].spName,
-    model: list[idx].model,
-    device: list[idx].device,
-    changeNum: inNum,
-    note
-  });
-  saveHistoryData(his);
-  
-  alert("入库成功！");
-  document.getElementById("changeNum").value="";
-  document.getElementById("operRemark").value="";
+  if(changeNum <= 0){
+    alert("入库数量必须大于0！");
+    return;
+  }
+
+  const stockList = getStockData();
+  const targetItem = stockList.find(item => item.id === spId);
+  if(!targetItem){
+    alert("未找到对应的备件数据！");
+    return;
+  }
+
+  // 更新库存
+  targetItem.num += changeNum;
+  saveStockData(stockList);
+
+  // 记录历史
+  addHistoryRecord(spId, targetItem.spName, targetItem.model, targetItem.device, changeNum, "入库", operRemark);
+
+  // 清空操作框
+  document.getElementById("changeNum").value = "";
+  document.getElementById("operRemark").value = "";
+
+  alert(`成功入库${changeNum}件【${targetItem.spName}】，当前库存：${targetItem.num}`);
   searchStock();
 }
 
 function stockOut(){
-  let id = document.getElementById("editId").value;
-  let outNum = parseInt(document.getElementById("changeNum").value);
-  let note = document.getElementById("operRemark").value.trim();
-  if(!id||!outNum||outNum<=0||!note){
-    alert("请选中备件、填写有效数量与备注！");
+  const spId = document.getElementById("editId").value.trim();
+  const changeNum = parseInt(document.getElementById("changeNum").value) || 0;
+  const operRemark = document.getElementById("operRemark").value.trim() || "无备注";
+
+  if(!spId){
+    alert("请先选中要操作的备件！");
     return;
   }
-  
-  let list = getStockData();
-  let idx = list.findIndex(v=>v.id===id);
-  if(idx===-1){alert("未找到备件");return;}
-  if(list[idx].num < outNum){alert("库存不足！");return;}
-  
-  list[idx].num -= outNum;
-  saveStockData(list);
-  
-  let his = getHistoryData();
-  his.unshift({
-    hid: Date.now(),
-    time: new Date().toLocaleString(),
-    type: "领用出库",
-    spName: list[idx].spName,
-    model: list[idx].model,
-    device: list[idx].device,
-    changeNum: outNum,
-    note
-  });
-  saveHistoryData(his);
-  
-  alert("出库成功！");
-  document.getElementById("changeNum").value="";
-  document.getElementById("operRemark").value="";
+  if(changeNum <= 0){
+    alert("出库数量必须大于0！");
+    return;
+  }
+
+  const stockList = getStockData();
+  const targetItem = stockList.find(item => item.id === spId);
+  if(!targetItem){
+    alert("未找到对应的备件数据！");
+    return;
+  }
+
+  // 检查库存是否足够
+  if(targetItem.num < changeNum){
+    alert(`库存不足！当前库存：${targetItem.num}，请求出库：${changeNum}`);
+    return;
+  }
+
+  // 更新库存
+  targetItem.num -= changeNum;
+  saveStockData(stockList);
+
+  // 记录历史
+  addHistoryRecord(spId, targetItem.spName, targetItem.model, targetItem.device, changeNum, "出库", operRemark);
+
+  // 清空操作框
+  document.getElementById("changeNum").value = "";
+  document.getElementById("operRemark").value = "";
+
+  alert(`成功出库${changeNum}件【${targetItem.spName}】，当前库存：${targetItem.num}`);
   searchStock();
-  if(document.getElementById("allStockBox").style.display === "block"){
-    openAllStockTable();
-  }
 }
 
-// ================= 历史记录模块【修复单条删除】 =================
+// ================= 历史记录管理 =================
+function addHistoryRecord(spId, spName, model, device, changeNum, operType, remark){
+  const historyList = getHistoryData();
+  // 生成流水号（时间戳+随机数）
+  const flowId = Date.now() + "-" + Math.floor(Math.random() * 1000);
+  historyList.push({
+    flowId,
+    spId,
+    spName,
+    model,
+    device,
+    changeNum,
+    operType,
+    remark,
+    operTime: new Date().toLocaleString()
+  });
+  saveHistoryData(historyList);
+}
+
 function renderHistory(){
-  let hisList = getHistoryData();
-  let tb = document.getElementById("historyTable");
-  tb.innerHTML = "";
-  
-  hisList.sort((a, b) => new Date(b.time) - new Date(a.time));
-  
-  hisList.forEach(h=>{
-    let tr = document.createElement("tr");
-    let numDisplay = h.type.includes("入库") || h.type.includes("录入") ? `+${h.changeNum}` : `-${h.changeNum}`;
+  const historyList = getHistoryData();
+  const historyTable = document.getElementById("historyTable");
+  historyTable.innerHTML = "";
+
+  if(!historyList.length){
+    historyTable.innerHTML = '<tr><td colspan="10" style="color:#999;text-align:center">暂无出入库历史记录</td></tr>';
+    return;
+  }
+
+  historyList.forEach(item => {
+    const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td><input type="checkbox" class="check-item rowCheckHis" value="${h.hid}" title="选中该条历史记录"></td>
-      <td>${h.hid}</td>
-      <td>${h.time}</td>
-      <td>${h.type}</td>
-      <td>${h.spName}</td>
-      <td>${h.model || '-'}</td>
-      <td>${h.device}</td>
-      <td>${numDisplay}</td>
-      <td>${h.note}</td>
-      <td><button type="button" class="btn-del btn-sm" onclick="deleteHistory(${h.hid})" title="删除该条出入库历史记录">删除</button></td>
+      <td><input type="checkbox" class="check-item historyCheck" value="${item.flowId}" title="选中该条历史记录"></td>
+      <td>${item.flowId}</td>
+      <td>${item.operTime}</td>
+      <td>${item.operType}</td>
+      <td>${item.spName}</td>
+      <td>${item.model}</td>
+      <td>${item.device}</td>
+      <td>${item.changeNum}</td>
+      <td>${item.remark}</td>
+      <td><button class="btn-del btn-sm" onclick="deleteHistory('${item.flowId}')" title="删除该条历史记录">删除</button></td>
     `;
-    tb.appendChild(tr);
+    historyTable.appendChild(tr);
   });
 }
 
-// 增加类型校验，确保数字匹配，修复删除失效
-function deleteHistory(hid){
-  if(isNaN(hid)){
-    alert("参数异常，删除失败");
-    return;
-  }
-  if(!confirm("确定要删除此条记录吗？")) return;
-  let his = getHistoryData();
-  // 严格匹配数字类型
-  let filtered = his.filter(item => Number(item.hid) !== Number(hid));
-  saveHistoryData(filtered);
+function checkAllHistory(){
+  const allCheck = document.getElementById("checkAllHis").checked;
+  const checks = document.querySelectorAll(".historyCheck");
+  checks.forEach(c => c.checked = allCheck);
+}
+
+function deleteHistory(flowId){
+  if(!confirm("确定删除该条历史记录？不可恢复")) return;
+  const historyList = getHistoryData();
+  const newList = historyList.filter(item => item.flowId !== flowId);
+  saveHistoryData(newList);
   renderHistory();
   alert("历史记录删除成功！");
 }
 
-function checkAllHistory(){
-  let allCheck = document.getElementById("checkAllHis").checked;
-  let checks = document.querySelectorAll(".rowCheckHis");
-  checks.forEach(c=>c.checked = allCheck);
-}
-
 function batchDeleteHistory(){
-  let checks = document.querySelectorAll(".rowCheckHis:checked");
-  if(checks.length === 0){ alert("请先勾选要删除的记录"); return; }
-  if(!confirm(`确定批量删除选中 ${checks.length} 条历史记录？`))return;
+  const checks = document.querySelectorAll(".historyCheck:checked");
+  if(checks.length === 0){
+    alert("请先勾选要删除的历史记录！");
+    return;
+  }
+  if(!confirm(`确定批量删除选中的${checks.length}条历史记录？不可恢复`)) return;
   
-  let delIds = [];
-  checks.forEach(c=>delIds.push(Number(c.value)));
+  const delIds = [];
+  checks.forEach(c => delIds.push(c.value));
   
-  let his = getHistoryData();
-  his = his.filter(item => !delIds.includes(Number(item.hid)));
+  const historyList = getHistoryData();
+  const newList = historyList.filter(item => !delIds.includes(item.flowId));
+  saveHistoryData(newList);
   
-  saveHistoryData(his);
   renderHistory();
   document.getElementById("checkAllHis").checked = false;
-  alert("批量删除成功！");
+  alert("批量删除完成！");
 }
 
-// ================= 库存总表 =================
+// ================= 库存总表管理 =================
 function openAllStockTable(){
   const allStockBox = document.getElementById("allStockBox");
-  const tableBody = document.getElementById("allStockTableBody");
+  const allStockTableBody = document.getElementById("allStockTableBody");
   allStockBox.style.display = "block";
   
   const stockList = getStockData();
-  tableBody.innerHTML = "";
-  
-  if(stockList.length === 0){
-    tableBody.innerHTML = '<tr><td colspan="9" style="color:#999;text-align:center">暂无库存数据</td></tr>';
+  allStockTableBody.innerHTML = "";
+
+  if(!stockList.length){
+    allStockTableBody.innerHTML = '<tr><td colspan="9" style="color:#999;text-align:center">暂无库存数据</td></tr>';
     return;
   }
-  
+
   stockList.forEach(item => {
     const tr = document.createElement("tr");
+    if(item.num <= item.lowWarn) tr.className = "warn-text";
     tr.innerHTML = `
       <td>${item.id}</td>
       <td>${item.wareArea}</td>
@@ -682,7 +687,7 @@ function openAllStockTable(){
       <td>${item.position}</td>
       <td><button class="btn-edit-text btn-sm" onclick="openEditModal('${item.id}')" title="编辑该备件信息">编辑</button></td>
     `;
-    tableBody.appendChild(tr);
+    allStockTableBody.appendChild(tr);
   });
 }
 
@@ -690,21 +695,23 @@ function hideAllStockTable(){
   document.getElementById("allStockBox").style.display = "none";
 }
 
-// ================= 编辑弹窗 =================
-function openEditModal(id){
+// ================= 编辑备件信息 =================
+function openEditModal(spId){
   const stockList = getStockData();
-  const item = stockList.find(item => item.id === id);
-  if(!item) return;
-  
-  document.getElementById("modalEditId").value = id;
-  document.getElementById("modalWareArea").value = item.wareArea;
-  document.getElementById("modalDevice").value = item.device;
-  document.getElementById("modalSpName").value = item.spName;
-  document.getElementById("modalModel").value = item.model;
-  document.getElementById("modalNum").value = item.num;
-  document.getElementById("modalWarn").value = item.lowWarn;
-  document.getElementById("modalPos").value = item.position;
-  
+  const targetItem = stockList.find(item => item.id === spId);
+  if(!targetItem) return;
+
+  // 填充编辑弹窗
+  document.getElementById("modalEditId").value = spId;
+  document.getElementById("modalWareArea").value = targetItem.wareArea;
+  document.getElementById("modalDevice").value = targetItem.device;
+  document.getElementById("modalSpName").value = targetItem.spName;
+  document.getElementById("modalModel").value = targetItem.model;
+  document.getElementById("modalNum").value = targetItem.num;
+  document.getElementById("modalWarn").value = targetItem.lowWarn;
+  document.getElementById("modalPos").value = targetItem.position;
+
+  // 显示弹窗
   document.getElementById("editModal").style.display = "block";
 }
 
@@ -713,45 +720,193 @@ function closeEditModal(){
 }
 
 function saveEditInfo(){
-  const id = document.getElementById("modalEditId").value;
+  const spId = document.getElementById("modalEditId").value;
   const wareArea = document.getElementById("modalWareArea").value.trim();
   const device = document.getElementById("modalDevice").value.trim();
   const spName = document.getElementById("modalSpName").value.trim();
   const model = document.getElementById("modalModel").value.trim();
   const num = parseInt(document.getElementById("modalNum").value) || 0;
-  const warn = parseInt(document.getElementById("modalWarn").value) || 0;
-  const pos = document.getElementById("modalPos").value.trim();
-  
-  if(!wareArea || !device || !spName || !model){
-    alert("必填项不能为空！");
+  const lowWarn = parseInt(document.getElementById("modalWarn").value) || 0;
+  const position = document.getElementById("modalPos").value.trim();
+
+  if(!spName || !model || !device || !position){
+    alert("备件名称、型号、所属设备、存放位置为必填项！");
     return;
   }
-  
+
   const stockList = getStockData();
-  const idx = stockList.findIndex(item => item.id === id);
-  if(idx === -1) return;
-  
-  stockList[idx] = {
-    ...stockList[idx],
+  const targetIndex = stockList.findIndex(item => item.id === spId);
+  if(targetIndex === -1){
+    alert("未找到对应的备件数据！");
+    return;
+  }
+
+  // 更新信息（ID不变，避免关联历史记录失效）
+  stockList[targetIndex] = {
+    ...stockList[targetIndex],
     wareArea,
-    device,
     spName,
     model,
+    device,
     num,
-    lowWarn: warn,
+    lowWarn,
     position
   };
-  
+
   saveStockData(stockList);
   closeEditModal();
+  
+  // 刷新库存总表和查询结果
+  openAllStockTable();
   searchStock();
-  if(document.getElementById("allStockBox").style.display === "block"){
-    openAllStockTable();
-  }
-  alert("修改成功！");
+
+  alert("备件信息修改成功！");
 }
 
-// ================= 折叠/展开 =================
+// ================= Excel导入导出 =================
+function importExcelData(){
+  const fileInput = document.getElementById("importFile");
+  if(!fileInput.files.length){
+    alert("请先选择要导入的Excel文件！");
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      if(!jsonData.length){
+        alert("Excel文件中无数据！");
+        return;
+      }
+
+      // 校验字段
+      const requiredFields = ["仓库分区", "备件名称", "型号", "所属设备", "数量", "预警数", "存放位置"];
+      const firstRowKeys = Object.keys(jsonData[0]);
+      const missingFields = requiredFields.filter(field => !firstRowKeys.includes(field));
+      if(missingFields.length){
+        alert(`Excel缺少必填字段：${missingFields.join("、")}`);
+        return;
+      }
+
+      const stockList = getStockData();
+      let successCount = 0;
+      let failCount = 0;
+
+      jsonData.forEach(row => {
+        const wareArea = row["仓库分区"] || "";
+        const spName = (row["备件名称"] || "").trim();
+        const model = (row["型号"] || "").trim();
+        const device = (row["所属设备"] || "").trim();
+        const num = parseInt(row["数量"]) || 0;
+        const lowWarn = parseInt(row["预警数"]) || 0;
+        const position = (row["存放位置"] || "").trim();
+
+        if(!spName || !model || !device || !position){
+          failCount++;
+          return;
+        }
+
+        const spId = generateSpId(spName, model);
+        const existItem = stockList.find(item => item.id === spId);
+        if(existItem){
+          failCount++;
+          return;
+        }
+
+        // 新增备件
+        stockList.push({
+          id: spId,
+          wareArea,
+          spName,
+          model,
+          device,
+          num,
+          lowWarn,
+          position
+        });
+
+        // 记录入库历史
+        addHistoryRecord(spId, spName, model, device, num, "入库", "Excel批量导入");
+        successCount++;
+      });
+
+      saveStockData(stockList);
+      fileInput.value = "";
+      alert(`导入完成！成功：${successCount}条，失败：${failCount}条（重复或必填项缺失）`);
+      searchStock();
+
+    } catch (error) {
+      alert(`导入失败：${error.message}`);
+      fileInput.value = "";
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function exportStockExcel(){
+  const stockList = getStockData();
+  if(!stockList.length){
+    alert("暂无库存数据可导出！");
+    return;
+  }
+
+  // 整理导出数据
+  const exportData = stockList.map(item => ({
+    "备件ID": item.id,
+    "仓库分区": item.wareArea,
+    "所属设备": item.device,
+    "备件名称": item.spName,
+    "型号": item.model,
+    "当前库存": item.num,
+    "预警下限": item.lowWarn,
+    "存放位置": item.position
+  }));
+
+  // 创建工作簿
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  XLSX.utils.book_append_sheet(workbook, worksheet, "库存总表");
+
+  // 导出文件
+  XLSX.writeFile(workbook, `备件库存表_${new Date().toLocaleDateString().replace(/\//g, "-")}.xlsx`);
+}
+
+function exportHistoryExcel(){
+  const historyList = getHistoryData();
+  if(!historyList.length){
+    alert("暂无历史记录可导出！");
+    return;
+  }
+
+  // 整理导出数据
+  const exportData = historyList.map(item => ({
+    "流水编号": item.flowId,
+    "操作时间": item.operTime,
+    "操作类型": item.operType,
+    "备件名称": item.spName,
+    "型号": item.model,
+    "所属设备": item.device,
+    "变动数量": item.changeNum,
+    "操作备注": item.remark
+  }));
+
+  // 创建工作簿
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  XLSX.utils.book_append_sheet(workbook, worksheet, "出入库历史");
+
+  // 导出文件
+  XLSX.writeFile(workbook, `出入库历史_${new Date().toLocaleDateString().replace(/\//g, "-")}.xlsx`);
+}
+
+// ================= 折叠/展开功能 =================
 function toggleFold(){
   const foldContent = document.getElementById("inputFold");
   foldContent.classList.toggle("fold-close");
@@ -762,140 +917,6 @@ function toggleBaseFold(){
   const foldContent = document.getElementById("baseFold");
   foldContent.classList.toggle("fold-close");
   foldContent.classList.toggle("fold-open");
-}
-
-// ================= 导入/导出Excel =================
-function exportStockExcel(){
-  let data=getStockData();
-  if(data.length===0){alert("暂无数据");return;}
-  let exportData = data.map(item => ({
-    ID: item.id,
-    仓库分区: item.wareArea,
-    所属设备: item.device,
-    备件名称: item.spName,
-    型号: item.model,
-    库存: item.num,
-    预警下限: item.lowWarn,
-    存放位置: item.position
-  }));
-  const ws = XLSX.utils.json_to_sheet(exportData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "库存总表");
-  XLSX.writeFile(wb, `备件库存表_${new Date().toLocaleDateString()}.xlsx`);
-}
-
-function exportHistoryExcel(){
-  let data=getHistoryData();
-  if(data.length===0){alert("暂无历史记录");return;}
-  let exportData = data.map(item => ({
-    流水编号: item.hid,
-    操作时间: item.time,
-    操作类型: item.type,
-    备件名称: item.spName,
-    型号: item.model || '-',
-    所属设备: item.device,
-    变动数量: item.changeNum,
-    操作备注: item.note || '-'
-  }));
-  const ws = XLSX.utils.json_to_sheet(exportData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "出入库历史");
-  XLSX.writeFile(wb, `出入库历史_${new Date().toLocaleDateString()}.xlsx`);
-}
-
-function importExcelData(){
-  const file = document.getElementById("importFile").files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: "array" });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      const json = XLSX.utils.sheet_to_json(ws);
-      
-      if(json.length === 0){
-        alert("Excel文件中无数据！");
-        return;
-      }
-      
-      const requiredFields = ["仓库分区", "备件名称", "型号", "所属设备", "数量", "预警数", "存放位置"];
-      const firstRow = json[0];
-      const hasAllFields = requiredFields.every(field => firstRow.hasOwnProperty(field));
-      if(!hasAllFields){
-        alert(`Excel模板字段缺失！必填字段：${requiredFields.join("、")}`);
-        return;
-      }
-      
-      const stockList = getStockData();
-      const hisList = getHistoryData();
-      let successCount = 0;
-      let failCount = 0;
-      
-      json.forEach(item => {
-        try {
-          const wareArea = item["仓库分区"];
-          const spName = item["备件名称"].trim();
-          const model = item["型号"].trim();
-          const device = item["所属设备"].trim();
-          const num = parseInt(item["数量"]) || 0;
-          const warn = parseInt(item["预警数"]) || 5;
-          const position = item["存放位置"].trim();
-          
-          if(!wareArea || !spName || !model || !device){
-            failCount++;
-            return;
-          }
-          
-          const spId = generateSpId(spName, model);
-          const existingIdx = stockList.findIndex(sp => sp.id === spId);
-          
-          if(existingIdx !== -1){
-            stockList[existingIdx].num += num;
-            stockList[existingIdx].lowWarn = warn;
-            stockList[existingIdx].position = position;
-            stockList[existingIdx].wareArea = wareArea;
-          } else {
-            stockList.push({
-              id: spId,
-              wareArea,
-              spName,
-              model,
-              device,
-              num,
-              lowWarn: warn,
-              position
-            });
-          }
-          
-          hisList.unshift({
-            hid: Date.now() + successCount,
-            time: new Date().toLocaleString(),
-            type: "Excel导入",
-            spName,
-            model,
-            device,
-            changeNum: num,
-            note: "Excel批量导入"
-          });
-          
-          successCount++;
-        } catch (err) {
-          failCount++;
-        }
-      });
-      
-      saveStockData(stockList);
-      saveHistoryData(hisList);
-      document.getElementById("importFile").value = "";
-      alert(`导入完成！成功：${successCount} 条，失败：${failCount} 条`);
-      searchStock();
-    } catch (err) {
-      alert(`导入失败：${err.message}`);
-    }
-  };
-  reader.readAsArrayBuffer(file);
 }
 </script>
 </body>
