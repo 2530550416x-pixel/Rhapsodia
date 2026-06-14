@@ -69,8 +69,8 @@ tr:hover{background:#fef9e6}
     <h2>📦 设备备件库存管理系统 <span style="font-size:11px">☁️ 云同步版</span></h2>
     <div id="syncStatus" class="sync-status loading">🔄 正在连接云端...</div>
     <div style="text-align:center;margin-bottom:12px">
-        <button class="tab-btn active" onclick="switchTab(0)">📋 库存管理</button>
-        <button class="tab-btn" onclick="switchTab(1)">📜 出入库历史</button>
+        <button class="tab-btn active" data-tab="0">📋 库存管理</button>
+        <button class="tab-btn" data-tab="1">📜 出入库历史</button>
     </div>
 
     <!-- 库存管理Tab -->
@@ -80,9 +80,9 @@ tr:hover{background:#fef9e6}
             <div class="row">
                 <input type="text" id="searchDevice" placeholder="所属设备">
                 <input type="text" id="searchSp" placeholder="备件名/型号">
-                <button class="btn-search" onclick="searchStock()">🔎 查询</button>
-                <button class="btn-reset" onclick="resetSearch()">🔄 重置</button>
-                <button class="btn-del btn-sm" onclick="batchDelete()">🗑️ 批量删除</button>
+                <button class="btn-search" id="searchBtn">🔎 查询</button>
+                <button class="btn-reset" id="resetSearchBtn">🔄 重置</button>
+                <button class="btn-del btn-sm" id="batchDeleteBtn">🗑️ 批量删除</button>
             </div>
         </div>
 
@@ -91,7 +91,7 @@ tr:hover{background:#fef9e6}
             <div class="table-wrapper">
                 <table id="resultTable">
                     <thead>
-                        <tr><th style="width:28px"><input type="checkbox" id="checkAll" onclick="checkAllItem()"></th>
+                        <tr><th style="width:28px"><input type="checkbox" id="checkAll"></th>
                             <th>ID</th><th>仓库</th><th>设备</th><th>备件名</th><th>型号</th>
                             <th>库存</th><th>预警</th><th>位置</th>
                         </tr>
@@ -109,8 +109,8 @@ tr:hover{background:#fef9e6}
                 <textarea id="operRemark" placeholder="备注(必填)"></textarea>
             </div>
             <div class="row">
-                <button class="btn-add" onclick="stockIn()">📦 增补入库</button>
-                <button class="btn-out" onclick="stockOut()">📤 领用出库</button>
+                <button class="btn-add" id="stockInBtn">📦 增补入库</button>
+                <button class="btn-out" id="stockOutBtn">📤 领用出库</button>
             </div>
             <div style="font-size:10px;color:#6c757d;margin-top:5px">💡 点击表格行自动选中备件ID</div>
         </div>
@@ -118,8 +118,8 @@ tr:hover{background:#fef9e6}
         <div class="box">
             <div class="title">🗂️ 库存总表</div>
             <div class="row">
-                <button class="btn-search" onclick="toggleAllStockTable()">📊 显示/隐藏总表</button>
-                <button class="btn-export" onclick="exportStockExcel()">📎 导出全部库存</button>
+                <button class="btn-search" id="toggleAllStockBtn">📊 显示/隐藏总表</button>
+                <button class="btn-export" id="exportStockBtn">📎 导出全部库存</button>
             </div>
             <div id="allStockBox" style="display:none;margin-top:10px">
                 <div class="table-wrapper">
@@ -132,7 +132,7 @@ tr:hover{background:#fef9e6}
         </div>
 
         <div class="box">
-            <div class="title">➕ 新增备件 <span class="fold-btn" onclick="toggleFold()">展开/折叠</span></div>
+            <div class="title">➕ 新增备件 <span class="fold-btn" id="toggleFoldBtn">展开/折叠</span></div>
             <div class="fold-content fold-close" id="inputFold">
                 <div class="row">
                     <select id="wareArea"></select>
@@ -146,21 +146,21 @@ tr:hover{background:#fef9e6}
                     <input type="text" id="position" placeholder="存放位置">
                 </div>
                 <div class="row">
-                    <button class="btn-add" onclick="addStock()">✨ 新建备件</button>
+                    <button class="btn-add" id="addStockBtn">✨ 新建备件</button>
                 </div>
                 <div class="row">
-                    <input type="file" id="importFile" accept=".xlsx,.xls" onchange="importExcelData()">
-                    <button class="btn-his btn-sm" onclick="alert('导入列：仓库分区,备件名称,型号,所属设备,数量,预警数,存放位置')">📌 说明</button>
+                    <input type="file" id="importFile" accept=".xlsx,.xls">
+                    <button class="btn-his btn-sm" id="importHintBtn">📌 说明</button>
                 </div>
             </div>
         </div>
 
         <div class="box">
-            <div class="title">⚙️ 仓库分区 <span class="fold-btn" onclick="toggleBaseFold()">展开/折叠</span></div>
+            <div class="title">⚙️ 仓库分区 <span class="fold-btn" id="toggleBaseFoldBtn">展开/折叠</span></div>
             <div class="fold-content fold-close" id="baseFold">
                 <div class="row">
                     <input type="text" id="newArea" placeholder="新增分区名称">
-                    <button class="btn-edit-text" onclick="addWareArea()">➕ 添加</button>
+                    <button class="btn-edit-text" id="addWareAreaBtn">➕ 添加</button>
                 </div>
                 <div class="row"><span>📌 现有分区：</span><div id="areaTagList"></div></div>
             </div>
@@ -173,8 +173,8 @@ tr:hover{background:#fef9e6}
             <div class="title">📜 出入库流水记录</div>
             <div class="row" style="justify-content:space-between">
                 <div>
-                    <button class="btn-his btn-sm" onclick="exportHistoryExcel()">📎 导出历史</button>
-                    <button class="btn-del btn-sm" onclick="batchDeleteHistory()">🗑️ 批量删除</button>
+                    <button class="btn-his btn-sm" id="exportHistoryBtn">📎 导出历史</button>
+                    <button class="btn-del btn-sm" id="batchDelHistoryBtn">🗑️ 批量删除</button>
                 </div>
                 <span style="font-size:11px;">✅ 勾选后可批量删除</span>
             </div>
@@ -182,7 +182,7 @@ tr:hover{background:#fef9e6}
                 <table>
                     <thead>
                         <tr>
-                            <th style="width:28px"><input type="checkbox" id="checkAllHistory" onclick="toggleCheckAllHistory()"></th>
+                            <th style="width:28px"><input type="checkbox" id="checkAllHistory"></th>
                             <th>流水号</th><th>时间</th><th>类型</th><th>备件名</th><th>型号</th><th>设备</th><th>变动</th><th>备注</th><th>操作</th>
                         </tr>
                     </thead>
@@ -193,7 +193,7 @@ tr:hover{background:#fef9e6}
     </div>
 </div>
 
-<div class="modal-overlay" id="modalOverlay" onclick="closeEditModal()"></div>
+<div class="modal-overlay" id="modalOverlay"></div>
 <div class="modal" id="editModal">
     <h3>✏️ 修改备件信息</h3>
     <input type="hidden" id="modalEditId">
@@ -205,8 +205,8 @@ tr:hover{background:#fef9e6}
     <div class="row"><input type="number" id="modalWarn" placeholder="预警" min="0"></div>
     <div class="row"><input type="text" id="modalPos" placeholder="存放位置"></div>
     <div class="row" style="justify-content:center;gap:10px;margin-top:12px">
-        <button class="btn-add" onclick="saveEditInfo()">✅ 保存</button>
-        <button class="btn-reset" onclick="closeEditModal()">❌ 取消</button>
+        <button class="btn-add" id="saveEditBtn">✅ 保存</button>
+        <button class="btn-reset" id="cancelEditBtn">❌ 取消</button>
     </div>
 </div>
 
@@ -217,35 +217,67 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 let supabase = null;
 let allStockData = [];
-let currentFilterResult = [];
 let currentHistoryData = [];
 
 // 初始化
 async function init() {
     try {
-        // 创建Supabase客户端
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        // 测试连接
         const { error } = await supabase.from('spare_stock').select('count', { count: 'exact', head: true });
         if (error) throw error;
-        
         document.getElementById('syncStatus').innerHTML = '✅ 云端已连接，数据实时同步';
         document.getElementById('syncStatus').className = 'sync-status online';
-        
-        // 加载数据
         await loadAllData();
-        
+        await loadHistoryData();
     } catch (err) {
         console.error('Supabase连接失败:', err);
         document.getElementById('syncStatus').innerHTML = '⚠️ 使用本地模式，请检查网络和Supabase配置';
         document.getElementById('syncStatus').className = 'sync-status offline';
-        // 使用本地演示数据
         loadLocalDemoData();
     }
+    bindEvents();
 }
 
-// 本地演示数据
+function bindEvents() {
+    // 库存管理tab内所有按钮
+    document.getElementById('searchBtn').onclick = () => searchStock();
+    document.getElementById('resetSearchBtn').onclick = () => resetSearch();
+    document.getElementById('batchDeleteBtn').onclick = () => batchDelete();
+    document.getElementById('stockInBtn').onclick = () => stockIn();
+    document.getElementById('stockOutBtn').onclick = () => stockOut();
+    document.getElementById('toggleAllStockBtn').onclick = () => toggleAllStockTable();
+    document.getElementById('exportStockBtn').onclick = () => exportStockExcel();
+    document.getElementById('addStockBtn').onclick = () => addStock();
+    document.getElementById('toggleFoldBtn').onclick = () => toggleFold();
+    document.getElementById('toggleBaseFoldBtn').onclick = () => toggleBaseFold();
+    document.getElementById('addWareAreaBtn').onclick = () => addWareArea();
+    document.getElementById('importHintBtn').onclick = () => alert('导入列：仓库分区,备件名称,型号,所属设备,数量,预警数,存放位置');
+    document.getElementById('importFile').onchange = (e) => importExcelData(e);
+    
+    // 历史tab按钮 (事件委托也可以，但直接绑定)
+    const exportHistory = document.getElementById('exportHistoryBtn');
+    if(exportHistory) exportHistory.onclick = () => exportHistoryExcel();
+    const batchDelHistory = document.getElementById('batchDelHistoryBtn');
+    if(batchDelHistory) batchDelHistory.onclick = () => batchDeleteHistory();
+    
+    // 全选
+    document.getElementById('checkAll').onclick = () => checkAllItem();
+    document.getElementById('checkAllHistory').onclick = () => toggleCheckAllHistory();
+    
+    // 模态框按钮
+    document.getElementById('saveEditBtn').onclick = () => saveEditInfo();
+    document.getElementById('cancelEditBtn').onclick = () => closeEditModal();
+    document.getElementById('modalOverlay').onclick = () => closeEditModal();
+    
+    // tab切换
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            const idx = parseInt(btn.getAttribute('data-tab'));
+            switchTab(idx);
+        };
+    });
+}
+
 function loadLocalDemoData() {
     allStockData = [
         {id:"轴承_6204", ware_area:"A区货架", device:"数控机床", sp_name:"轴承", model:"6204", num:3, low_warn:5, position:"A-01"},
@@ -260,13 +292,11 @@ function loadLocalDemoData() {
     renderStockTable(allStockData);
 }
 
-// 加载所有数据
 async function loadAllData() {
     await loadStockData();
     await loadAreas();
 }
 
-// 加载库存
 async function loadStockData() {
     try {
         const { data, error } = await supabase.from('spare_stock').select('*').order('sp_name');
@@ -284,7 +314,6 @@ async function loadStockData() {
     }
 }
 
-// 加载仓库分区
 async function loadAreas() {
     try {
         const { data, error } = await supabase.from('ware_areas').select('*').order('sort_order');
@@ -300,8 +329,11 @@ async function loadAreas() {
     }
 }
 
-// 加载历史
 async function loadHistoryData() {
+    if (!supabase) {
+        renderHistoryTable([]);
+        return;
+    }
     try {
         const { data, error } = await supabase.from('spare_history').select('*').order('hid', { ascending: false }).limit(200);
         if (error) throw error;
@@ -313,7 +345,6 @@ async function loadHistoryData() {
     }
 }
 
-// 渲染库存表格
 function renderStockTable(list) {
     const tbody = document.getElementById('stockTable');
     if (!tbody) return;
@@ -326,7 +357,7 @@ function renderStockTable(list) {
         const isWarn = item.num <= item.low_warn;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="checkbox" class="check-item rowCheck" value="${escapeHtml(item.id)}"></td>
+            <td><input type="checkbox" class="rowCheck" value="${escapeHtml(item.id)}"></td>
             <td>${escapeHtml(item.id)}</td>
             <td>${escapeHtml(item.ware_area || '')}</td>
             <td>${escapeHtml(item.device)}</td>
@@ -347,7 +378,6 @@ function renderStockTable(list) {
     document.getElementById('checkAll').checked = false;
 }
 
-// 渲染历史表格
 function renderHistoryTable(historyData) {
     const tbody = document.getElementById('historyTable');
     if (!tbody) return;
@@ -368,20 +398,22 @@ function renderHistoryTable(historyData) {
             <td>${escapeHtml(rec.device)}</td>
             <td>${rec.change_num}</td>
             <td>${escapeHtml(rec.note || '')}</td>
-            <td><button class="btn-del btn-sm" onclick="deleteSingleHistory(${rec.hid})">删除</button></td>
+            <td><button class="btn-del btn-sm" data-hid="${rec.hid}">删除</button></td>
         `;
+        const delBtn = tr.querySelector('button');
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteSingleHistory(rec.hid);
+        };
         tbody.appendChild(tr);
     });
 }
 
-// 搜索
 function searchStock() {
     const deviceKw = document.getElementById('searchDevice').value.trim();
     const spKw = document.getElementById('searchSp').value.trim();
-    
     if (deviceKw === '' && spKw === '') {
         const filtered = allStockData.filter(item => item.num <= item.low_warn);
-        currentFilterResult = filtered;
         renderStockTable(filtered);
     } else {
         const filtered = allStockData.filter(item => {
@@ -389,114 +421,66 @@ function searchStock() {
             const matchSp = spKw === '' || String(item.sp_name).toLowerCase().includes(spKw.toLowerCase()) || String(item.model).toLowerCase().includes(spKw.toLowerCase());
             return matchDev && matchSp;
         });
-        currentFilterResult = filtered;
         renderStockTable(filtered);
     }
 }
 
-// 重置搜索
 function resetSearch() {
     document.getElementById('searchDevice').value = '';
     document.getElementById('searchSp').value = '';
     renderStockTable(allStockData);
 }
 
-// 入库
 async function stockIn() {
     const id = document.getElementById('editId').value;
     const qty = parseInt(document.getElementById('changeNum').value);
     const remark = document.getElementById('operRemark').value.trim();
-    
-    if (!id || !qty || qty <= 0 || !remark) {
-        alert('请选中备件，填写有效数量及备注！');
-        return;
-    }
-    
-    if (!supabase) {
-        alert('云端未连接，请刷新页面重试');
-        return;
-    }
-    
+    if (!id || !qty || qty <= 0 || !remark) { alert('请选中备件，填写有效数量及备注！'); return; }
+    if (!supabase) { alert('云端未连接'); return; }
     try {
         const { data: current, error: fetchError } = await supabase.from('spare_stock').select('num, sp_name, model, device').eq('id', id).single();
         if (fetchError) throw fetchError;
-        
         const newNum = current.num + qty;
-        const { error: updateError } = await supabase.from('spare_stock').update({ num: newNum }).eq('id', id);
-        if (updateError) throw updateError;
-        
+        await supabase.from('spare_stock').update({ num: newNum }).eq('id', id);
         await addHistoryRecord(current.sp_name, current.model, current.device, '增补入库', `+${qty}`, remark);
-        
         document.getElementById('changeNum').value = '';
         document.getElementById('operRemark').value = '';
         showToast('入库成功');
         await loadStockData();
-    } catch (err) {
-        alert('操作失败: ' + err.message);
-    }
+    } catch (err) { alert('操作失败: ' + err.message); }
 }
 
-// 出库
 async function stockOut() {
     const id = document.getElementById('editId').value;
     const qty = parseInt(document.getElementById('changeNum').value);
     const remark = document.getElementById('operRemark').value.trim();
-    
-    if (!id || !qty || qty <= 0 || !remark) {
-        alert('请选中备件，填写有效数量及备注！');
-        return;
-    }
-    
-    if (!supabase) {
-        alert('云端未连接，请刷新页面重试');
-        return;
-    }
-    
+    if (!id || !qty || qty <= 0 || !remark) { alert('请选中备件，填写有效数量及备注！'); return; }
+    if (!supabase) { alert('云端未连接'); return; }
     try {
         const { data: current, error: fetchError } = await supabase.from('spare_stock').select('num, sp_name, model, device').eq('id', id).single();
         if (fetchError) throw fetchError;
-        
-        if (current.num < qty) {
-            alert('库存不足！');
-            return;
-        }
-        
+        if (current.num < qty) { alert('库存不足！'); return; }
         const newNum = current.num - qty;
-        const { error: updateError } = await supabase.from('spare_stock').update({ num: newNum }).eq('id', id);
-        if (updateError) throw updateError;
-        
+        await supabase.from('spare_stock').update({ num: newNum }).eq('id', id);
         await addHistoryRecord(current.sp_name, current.model, current.device, '领用出库', `-${qty}`, remark);
-        
         document.getElementById('changeNum').value = '';
         document.getElementById('operRemark').value = '';
         showToast('出库成功');
         await loadStockData();
-    } catch (err) {
-        alert('操作失败: ' + err.message);
-    }
+    } catch (err) { alert('操作失败: ' + err.message); }
 }
 
-// 添加历史记录
 async function addHistoryRecord(spName, model, device, type, changeStr, note) {
     if (!supabase) return;
     try {
         const hid = Date.now() + Math.floor(Math.random() * 10000);
         await supabase.from('spare_history').insert({
-            hid: hid,
-            time: new Date().toLocaleString(),
-            type: type,
-            sp_name: spName,
-            model: model || '',
-            device: device,
-            change_num: changeStr,
-            note: note
+            hid: hid, time: new Date().toLocaleString(), type: type,
+            sp_name: spName, model: model || '', device: device, change_num: changeStr, note: note
         });
-    } catch (err) {
-        console.error('保存历史失败:', err);
-    }
+    } catch (err) { console.error('保存历史失败:', err); }
 }
 
-// 新增备件
 async function addStock() {
     const area = document.getElementById('wareArea').value;
     const name = document.getElementById('spName').value.trim();
@@ -505,72 +489,38 @@ async function addStock() {
     const num = parseInt(document.getElementById('spNum').value) || 0;
     const warn = parseInt(document.getElementById('lowWarn').value) || 5;
     const pos = document.getElementById('position').value.trim();
-    
-    if (!name || !device) {
-        alert('备件名称与所属设备必填');
-        return;
-    }
-    
+    if (!name || !device) { alert('备件名称与所属设备必填'); return; }
     const newId = name + '_' + model;
-    
-    if (supabase) {
-        try {
-            const { error } = await supabase.from('spare_stock').insert({
-                id: newId,
-                ware_area: area,
-                device: device,
-                sp_name: name,
-                model: model,
-                num: num,
-                low_warn: warn,
-                position: pos
-            });
-            if (error) throw error;
-            
-            await addHistoryRecord(name, model, device, '初始入库', `+${num}`, '新建备件');
-            alert('新建备件成功！');
-            
-            document.getElementById('spName').value = '';
-            document.getElementById('spModel').value = '';
-            document.getElementById('deviceName').value = '';
-            document.getElementById('spNum').value = '';
-            document.getElementById('position').value = '';
-            
-            await loadStockData();
-        } catch (err) {
-            alert('添加失败: ' + err.message);
-        }
-    } else {
-        alert('云端未连接，无法添加');
-    }
+    if (!supabase) { alert('云端未连接，无法添加'); return; }
+    try {
+        const { error } = await supabase.from('spare_stock').insert({
+            id: newId, ware_area: area, device: device, sp_name: name, model: model, num: num, low_warn: warn, position: pos
+        });
+        if (error) throw error;
+        await addHistoryRecord(name, model, device, '初始入库', `+${num}`, '新建备件');
+        alert('新建备件成功！');
+        document.getElementById('spName').value = '';
+        document.getElementById('spModel').value = '';
+        document.getElementById('deviceName').value = '';
+        document.getElementById('spNum').value = '';
+        document.getElementById('position').value = '';
+        await loadStockData();
+    } catch (err) { alert('添加失败: ' + err.message); }
 }
 
-// 批量删除
 async function batchDelete() {
     const checks = document.querySelectorAll('.rowCheck:checked');
-    if (checks.length === 0) {
-        alert('请勾选要删除的备件');
-        return;
-    }
+    if (checks.length === 0) { alert('请勾选要删除的备件'); return; }
     if (!confirm(`确认删除 ${checks.length} 条备件？不可恢复`)) return;
-    
-    if (!supabase) {
-        alert('云端未连接');
-        return;
-    }
-    
+    if (!supabase) { alert('云端未连接'); return; }
     const delIds = Array.from(checks).map(cb => cb.value);
     try {
-        const { error } = await supabase.from('spare_stock').delete().in('id', delIds);
-        if (error) throw error;
+        await supabase.from('spare_stock').delete().in('id', delIds);
         showToast('批量删除完成');
         await loadStockData();
-    } catch (err) {
-        alert('删除失败: ' + err.message);
-    }
+    } catch (err) { alert('删除失败: ' + err.message); }
 }
 
-// 删除单条历史
 async function deleteSingleHistory(hid) {
     if (!confirm('删除该条流水记录？')) return;
     if (!supabase) return;
@@ -578,59 +528,35 @@ async function deleteSingleHistory(hid) {
         await supabase.from('spare_history').delete().eq('hid', hid);
         showToast('已删除');
         await loadHistoryData();
-    } catch (err) {
-        alert('删除失败: ' + err.message);
-    }
+    } catch (err) { alert('删除失败: ' + err.message); }
 }
 
-// 批量删除历史
 async function batchDeleteHistory() {
     const checks = document.querySelectorAll('.historyCheck:checked');
-    if (checks.length === 0) {
-        alert('请勾选要删除的历史记录');
-        return;
-    }
+    if (checks.length === 0) { alert('请勾选要删除的历史记录'); return; }
     if (!confirm(`确认删除 ${checks.length} 条记录？`)) return;
-    
     if (!supabase) return;
-    
     const delIds = Array.from(checks).map(cb => parseInt(cb.value));
     try {
         await supabase.from('spare_history').delete().in('hid', delIds);
         showToast('批量删除完成');
         await loadHistoryData();
-    } catch (err) {
-        alert('删除失败: ' + err.message);
-    }
+    } catch (err) { alert('删除失败: ' + err.message); }
 }
 
-// 全选
-function checkAllItem() {
-    const allChecked = document.getElementById('checkAll').checked;
-    document.querySelectorAll('.rowCheck').forEach(cb => cb.checked = allChecked);
-}
+function checkAllItem() { const c = document.getElementById('checkAll').checked; document.querySelectorAll('.rowCheck').forEach(cb => cb.checked = c); }
+function toggleCheckAllHistory() { const c = document.getElementById('checkAllHistory').checked; document.querySelectorAll('.historyCheck').forEach(cb => cb.checked = c); }
 
-function toggleCheckAllHistory() {
-    const allChecked = document.getElementById('checkAllHistory').checked;
-    document.querySelectorAll('.historyCheck').forEach(cb => cb.checked = allChecked);
-}
-
-// 仓库分区操作
 async function addWareArea() {
     const v = document.getElementById('newArea').value.trim();
     if (!v) return;
-    if (!supabase) {
-        alert('云端未连接');
-        return;
-    }
+    if (!supabase) { alert('云端未连接'); return; }
     try {
         await supabase.from('ware_areas').insert({ name: v });
         document.getElementById('newArea').value = '';
         showToast('分区已添加');
         await loadAreas();
-    } catch (err) {
-        alert('添加失败: ' + err.message);
-    }
+    } catch (err) { alert('添加失败: ' + err.message); }
 }
 
 async function editArea(idx, oldName) {
@@ -643,9 +569,7 @@ async function editArea(idx, oldName) {
             await loadAreas();
             await loadStockData();
             showToast('分区已更新');
-        } catch (err) {
-            alert('更新失败: ' + err.message);
-        }
+        } catch (err) { alert('更新失败: ' + err.message); }
     }
 }
 
@@ -656,9 +580,7 @@ async function delArea(idx, name) {
         await supabase.from('ware_areas').delete().eq('name', name);
         await loadAreas();
         showToast('分区已删除');
-    } catch (err) {
-        alert('删除失败: ' + err.message);
-    }
+    } catch (err) { alert('删除失败: ' + err.message); }
 }
 
 function renderAreaSelect(areas) {
@@ -670,18 +592,19 @@ function renderAreaSelect(areas) {
 function renderAreaTags(areas) {
     const box = document.getElementById('areaTagList');
     if (!box) return;
-    box.innerHTML = areas.map((item, idx) => `<span class="tag-item">${escapeHtml(item)} <button class="btn-sm btn-edit-text" onclick="editArea(${idx}, '${escapeHtml(item)}')">改</button><button class="btn-sm btn-del" onclick="delArea(${idx}, '${escapeHtml(item)}')">删</button></span>`).join('');
+    box.innerHTML = areas.map((item, idx) => `<span class="tag-item">${escapeHtml(item)} <button class="btn-sm btn-edit-text" data-idx="${idx}" data-name="${escapeHtml(item)}">改</button><button class="btn-sm btn-del" data-idx="${idx}" data-name="${escapeHtml(item)}">删</button></span>`).join('');
+    Array.from(box.querySelectorAll('.btn-edit-text')).forEach(btn => {
+        btn.onclick = (e) => { e.stopPropagation(); const name = btn.getAttribute('data-name'); editArea(null, name); };
+    });
+    Array.from(box.querySelectorAll('.btn-del')).forEach(btn => {
+        btn.onclick = (e) => { e.stopPropagation(); const name = btn.getAttribute('data-name'); delArea(null, name); };
+    });
 }
 
-// 库存总表
 function toggleAllStockTable() {
     const box = document.getElementById('allStockBox');
-    if (box.style.display === 'block') {
-        box.style.display = 'none';
-    } else {
-        box.style.display = 'block';
-        renderAllStockTable();
-    }
+    if (box.style.display === 'block') { box.style.display = 'none'; }
+    else { box.style.display = 'block'; renderAllStockTable(); }
 }
 
 function renderAllStockTable() {
@@ -690,20 +613,18 @@ function renderAllStockTable() {
     tb.innerHTML = allStockData.map(item => {
         const warnFlag = item.num <= item.low_warn;
         return `<tr>
-            <td>${escapeHtml(item.id)}</td>
-            <td>${escapeHtml(item.ware_area || '')}</td>
-            <td>${escapeHtml(item.device)}</td>
-            <td>${escapeHtml(item.sp_name)}</td>
-            <td>${escapeHtml(item.model || '')}</td>
-            <td class="${warnFlag ? 'warn-red' : ''}">${item.num}</td>
-            <td>${item.low_warn}</td>
+            <td>${escapeHtml(item.id)}</td><td>${escapeHtml(item.ware_area || '')}</td><td>${escapeHtml(item.device)}</td>
+            <td>${escapeHtml(item.sp_name)}</td><td>${escapeHtml(item.model || '')}</td>
+            <td class="${warnFlag ? 'warn-red' : ''}">${item.num}</td><td>${item.low_warn}</td>
             <td>${escapeHtml(item.position || '')}</td>
-            <td><button class="btn-edit-text btn-sm" onclick="openEditModal('${item.id}')">修改</button></td>
+            <td><button class="btn-edit-text btn-sm" data-id="${item.id}">修改</button></td>
         </tr>`;
     }).join('');
+    tb.querySelectorAll('button').forEach(btn => {
+        btn.onclick = () => openEditModal(btn.getAttribute('data-id'));
+    });
 }
 
-// 编辑弹窗
 function openEditModal(id) {
     const item = allStockData.find(i => i.id === id);
     if (item) {
@@ -734,82 +655,42 @@ async function saveEditInfo() {
     const num = parseInt(document.getElementById('modalNum').value) || 0;
     const lowWarn = parseInt(document.getElementById('modalWarn').value) || 0;
     const position = document.getElementById('modalPos').value.trim();
-
-    if (!supabase) {
-        alert('云端未连接');
-        return;
-    }
-
+    if (!supabase) { alert('云端未连接'); return; }
     try {
-        await supabase.from('spare_stock').update({
-            ware_area: wareArea,
-            device: device,
-            sp_name: spName,
-            model: model,
-            num: num,
-            low_warn: lowWarn,
-            position: position
-        }).eq('id', id);
-        
+        await supabase.from('spare_stock').update({ ware_area: wareArea, device, sp_name: spName, model, num, low_warn: lowWarn, position }).eq('id', id);
         closeEditModal();
         showToast('修改成功');
         await loadStockData();
-    } catch (err) {
-        alert('修改失败: ' + err.message);
-    }
+    } catch (err) { alert('修改失败: ' + err.message); }
 }
 
-// 导入Excel
-async function importExcelData() {
-    const file = document.getElementById('importFile').files[0];
+async function importExcelData(event) {
+    const file = event.target.files[0];
     if (!file) return;
-    
     const reader = new FileReader();
     reader.onload = async function(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
-        
-        if (!supabase) {
-            alert('云端未连接');
-            return;
-        }
-        
+        if (!supabase) { alert('云端未连接'); return; }
         let importedCount = 0;
         for (const row of rows) {
             const name = row.备件名称 || '';
             const model = row.型号 || '';
             const device = row.所属设备 || '';
             if (!name || !device) continue;
-            
             const newId = name + '_' + model;
-            const newItem = {
-                id: newId,
-                ware_area: row.仓库分区 || '',
-                device: device,
-                sp_name: name,
-                model: model,
-                num: parseInt(row.数量) || 0,
-                low_warn: parseInt(row.预警数) || 5,
-                position: row.存放位置 || ''
-            };
-            
+            const newItem = { id: newId, ware_area: row.仓库分区 || '', device, sp_name: name, model, num: parseInt(row.数量) || 0, low_warn: parseInt(row.预警数) || 5, position: row.存放位置 || '' };
             try {
                 const { data: existing } = await supabase.from('spare_stock').select('id').eq('id', newId);
                 if (existing && existing.length > 0) {
                     const { data: current } = await supabase.from('spare_stock').select('num').eq('id', newId).single();
-                    if (current) {
-                        await supabase.from('spare_stock').update({ num: current.num + newItem.num }).eq('id', newId);
-                    }
-                } else {
-                    await supabase.from('spare_stock').insert(newItem);
-                }
+                    if (current) await supabase.from('spare_stock').update({ num: current.num + newItem.num }).eq('id', newId);
+                } else { await supabase.from('spare_stock').insert(newItem); }
                 await addHistoryRecord(name, model, device, '批量导入', `+${newItem.num}`, 'Excel导入');
                 importedCount++;
-            } catch (err) {
-                console.error('导入失败:', err);
-            }
+            } catch (err) { console.error(err); }
         }
         alert(`导入完成！成功 ${importedCount} 条`);
         document.getElementById('importFile').value = '';
@@ -818,18 +699,8 @@ async function importExcelData() {
     reader.readAsArrayBuffer(file);
 }
 
-// 导出Excel
 function exportStockExcel() {
-    const exportData = allStockData.map(item => ({
-        'ID': item.id,
-        '仓库分区': item.ware_area,
-        '所属设备': item.device,
-        '备件名称': item.sp_name,
-        '型号': item.model,
-        '当前库存': item.num,
-        '预警下限': item.low_warn,
-        '存放位置': item.position
-    }));
+    const exportData = allStockData.map(item => ({ 'ID': item.id, '仓库分区': item.ware_area, '所属设备': item.device, '备件名称': item.sp_name, '型号': item.model, '当前库存': item.num, '预警下限': item.low_warn, '存放位置': item.position }));
     if (exportData.length === 0) { alert('无数据'); return; }
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
@@ -839,102 +710,33 @@ function exportStockExcel() {
 }
 
 async function exportHistoryExcel() {
-    if (!supabase) {
-        alert('云端未连接');
-        return;
-    }
+    if (!supabase) { alert('云端未连接'); return; }
     try {
         const { data } = await supabase.from('spare_history').select('*').order('hid', { ascending: false });
-        const exportData = (data || []).map(item => ({
-            '流水编号': item.hid,
-            '操作时间': item.time,
-            '操作类型': item.type,
-            '备件名称': item.sp_name,
-            '型号': item.model,
-            '所属设备': item.device,
-            '变动数量': item.change_num,
-            '操作备注': item.note
-        }));
+        const exportData = (data || []).map(item => ({ '流水编号': item.hid, '操作时间': item.time, '操作类型': item.type, '备件名称': item.sp_name, '型号': item.model, '所属设备': item.device, '变动数量': item.change_num, '操作备注': item.note }));
         if (exportData.length === 0) { alert('无记录'); return; }
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, '出入库历史');
         XLSX.writeFile(wb, `出入库历史_${new Date().toLocaleDateString()}.xlsx`);
         showToast('导出成功');
-    } catch (err) {
-        alert('导出失败: ' + err.message);
-    }
+    } catch (err) { alert('导出失败: ' + err.message); }
 }
 
-// 切换Tab
 function switchTab(idx) {
     const tabs = document.querySelectorAll('.tab');
     const btns = document.querySelectorAll('.tab-btn');
     for (let i = 0; i < tabs.length; i++) {
-        if (i === idx) {
-            tabs[i].classList.add('active');
-            btns[i].classList.add('active');
-        } else {
-            tabs[i].classList.remove('active');
-            btns[i].classList.remove('active');
-        }
+        if (i === idx) { tabs[i].classList.add('active'); btns[i].classList.add('active'); }
+        else { tabs[i].classList.remove('active'); btns[i].classList.remove('active'); }
     }
-    if (idx === 1 && supabase) {
-        loadHistoryData();
-    }
+    if (idx === 1 && supabase) loadHistoryData();
 }
 
-// 折叠控制
-function toggleFold() {
-    const el = document.getElementById('inputFold');
-    if (el.classList.contains('fold-close')) {
-        el.classList.remove('fold-close');
-        el.classList.add('fold-open');
-    } else {
-        el.classList.remove('fold-open');
-        el.classList.add('fold-close');
-    }
-}
-
-function toggleBaseFold() {
-    const el = document.getElementById('baseFold');
-    if (el.classList.contains('fold-close')) {
-        el.classList.remove('fold-close');
-        el.classList.add('fold-open');
-    } else {
-        el.classList.remove('fold-open');
-        el.classList.add('fold-close');
-    }
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
-
-function showToast(msg) {
-    const t = document.createElement('div');
-    t.innerText = msg;
-    t.style.position = 'fixed';
-    t.style.bottom = '20px';
-    t.style.left = '50%';
-    t.style.transform = 'translateX(-50%)';
-    t.style.backgroundColor = '#2c3e50';
-    t.style.color = 'white';
-    t.style.padding = '6px 16px';
-    t.style.borderRadius = '30px';
-    t.style.zIndex = '9999';
-    t.style.fontSize = '12px';
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 2000);
-}
-
-// 启动
+function toggleFold() { const el = document.getElementById('inputFold'); el.classList.toggle('fold-close'); el.classList.toggle('fold-open'); }
+function toggleBaseFold() { const el = document.getElementById('baseFold'); el.classList.toggle('fold-close'); el.classList.toggle('fold-open'); }
+function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+function showToast(msg) { const t = document.createElement('div'); t.innerText = msg; t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:white;padding:6px 16px;border-radius:30px;z-index:9999;font-size:12px'; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
 init();
 </script>
 </body>
