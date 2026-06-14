@@ -96,7 +96,7 @@ tr:hover{background:#fef9e6}
                             <th>库存</th><th>预警</th><th>位置</th>
                         </tr>
                     </thead>
-                    <tbody id="stockTable"><tr><td colspan="9" style="text-align:center;color:#999;">🔍 请输入查询条件后点击"查询"按钮</td></tr></tbody>
+                    <tbody id="stockTable"><tr><td colspan="9" style="text-align:center;color:#aaa;">🔍 点击"查询"按钮加载数据</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -186,7 +186,7 @@ tr:hover{background:#fef9e6}
                             <th>流水号</th><th>时间</th><th>类型</th><th>备件名</th><th>型号</th><th>设备</th><th>变动</th><th>备注</th><th>操作</th>
                         </tr>
                     </thead>
-                    <tbody id="historyTable"><tr><td colspan="10" style="text-align:center;color:#999;">暂无记录</td></tr></tbody>
+                    <tbody id="historyTable"><tr><td colspan="10" style="text-align:center;color:#aaa;">暂无记录</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -216,7 +216,7 @@ const SUPABASE_URL = 'https://noffptamoriqklsrfhdq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vZmZwdGFtb3JpcWtsc3JmaGRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjcwNDMsImV4cCI6MjA5NzAwMzA0M30.k6icC9TZq82WdZ3aFrdH3ZLYUIQ4VJ1ij2_C2AStCJM';
 
 let supabase = null;
-let allStockData = [];
+let allStockData = [];      // 内存中的全部库存数据
 let currentHistoryData = [];
 
 // 初始化
@@ -227,16 +227,26 @@ async function init() {
         if (error) throw error;
         document.getElementById('syncStatus').innerHTML = '✅ 云端已连接，数据实时同步';
         document.getElementById('syncStatus').className = 'sync-status online';
-        await loadAllData();
+        await loadAllData();      // 加载到内存，不自动显示查询结果
         await loadHistoryData();
-        // 注意：loadStockData 只加载数据到内存，不渲染到查询结果表（保持空状态）
+        // 查询结果表格保持为空提示，不自动加载任何数据
+        clearStockTable();
     } catch (err) {
         console.error('Supabase连接失败:', err);
         document.getElementById('syncStatus').innerHTML = '⚠️ 使用本地模式，请检查网络和Supabase配置';
         document.getElementById('syncStatus').className = 'sync-status offline';
         loadLocalDemoData();
+        // 本地模式也不自动显示数据
+        clearStockTable();
     }
     bindEvents();
+}
+
+function clearStockTable() {
+    const tbody = document.getElementById('stockTable');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#aaa;">🔍 点击"查询"按钮加载数据</td></tr>';
+    }
 }
 
 function bindEvents() {
@@ -274,7 +284,7 @@ function bindEvents() {
     });
 }
 
-// 本地演示数据 - 仅加载到内存，不自动显示到查询结果表
+// 本地演示数据 - 仅加载到内存，不显示到查询结果表
 function loadLocalDemoData() {
     allStockData = [
         {id:"轴承_6204", ware_area:"A区货架", device:"数控机床", sp_name:"轴承", model:"6204", num:3, low_warn:5, position:"A-01"},
@@ -286,15 +296,12 @@ function loadLocalDemoData() {
     const areas = ["A区货架", "B区货架", "C区耗材区", "备品专库区", "室外堆放区"];
     renderAreaSelect(areas);
     renderAreaTags(areas);
-    // 查询结果表格默认显示提示，不显示数据
-    document.getElementById('stockTable').innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;">🔍 请输入查询条件后点击"查询"按钮</td></tr>';
+    // 不显示数据到查询结果表
 }
 
 async function loadAllData() {
     await loadStockData();      // 加载到 allStockData
     await loadAreas();
-    // 查询结果表格默认显示提示，不显示数据
-    document.getElementById('stockTable').innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;">🔍 请输入查询条件后点击"查询"按钮</td></tr>';
 }
 
 async function loadStockData() {
@@ -303,7 +310,6 @@ async function loadStockData() {
         if (error) throw error;
         allStockData = data || [];
         localStorage.setItem('stock_backup', JSON.stringify(allStockData));
-        // 注意：不自动渲染到查询结果表，保持初始空状态
     } catch (err) {
         console.error('加载库存失败:', err);
         const backup = localStorage.getItem('stock_backup');
@@ -382,7 +388,7 @@ function renderHistoryTable(historyData) {
     const tbody = document.getElementById('historyTable');
     if (!tbody) return;
     if (!historyData || historyData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#999;">暂无记录</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#aaa;">暂无记录</td></tr>';
         return;
     }
     tbody.innerHTML = '';
@@ -409,7 +415,7 @@ function renderHistoryTable(historyData) {
     });
 }
 
-// 查询：空条件时显示低于预警的物料，否则按条件筛选
+// 查询功能：空条件时显示低于预警物料，否则按条件筛选
 function searchStock() {
     const deviceKw = document.getElementById('searchDevice').value.trim();
     const spKw = document.getElementById('searchSp').value.trim();
@@ -426,12 +432,30 @@ function searchStock() {
     renderStockTable(filtered);
 }
 
+// 重置搜索框并清空表格（恢复为空提示，不自动查询）
 function resetSearch() {
     document.getElementById('searchDevice').value = '';
     document.getElementById('searchSp').value = '';
-    // 重置后默认显示低于预警的物料（符合业务逻辑）
-    const filtered = allStockData.filter(item => item.num <= item.low_warn);
-    renderStockTable(filtered);
+    // 重置后清空表格，保持空提示状态
+    clearStockTable();
+}
+
+// 刷新当前视图（在增删改后调用，保持当前筛选条件但重新加载数据）
+function refreshCurrentView() {
+    const deviceKw = document.getElementById('searchDevice').value.trim();
+    const spKw = document.getElementById('searchSp').value.trim();
+    // 如果两个搜索框都为空，则清空表格（不自动显示低于预警）
+    if (deviceKw === '' && spKw === '') {
+        clearStockTable();
+    } else {
+        // 有搜索条件时自动刷新结果
+        const filtered = allStockData.filter(item => {
+            const matchDev = deviceKw === '' || String(item.device).toLowerCase().includes(deviceKw.toLowerCase());
+            const matchSp = spKw === '' || String(item.sp_name).toLowerCase().includes(spKw.toLowerCase()) || String(item.model).toLowerCase().includes(spKw.toLowerCase());
+            return matchDev && matchSp;
+        });
+        renderStockTable(filtered);
+    }
 }
 
 async function stockIn() {
@@ -450,8 +474,8 @@ async function stockIn() {
         document.getElementById('operRemark').value = '';
         showToast('入库成功');
         await loadStockData();
-        // 刷新当前查询结果（保持用户当前筛选状态）
         refreshCurrentView();
+        if (document.getElementById('allStockBox').style.display === 'block') renderAllStockTable();
     } catch (err) { alert('操作失败: ' + err.message); }
 }
 
@@ -473,24 +497,8 @@ async function stockOut() {
         showToast('出库成功');
         await loadStockData();
         refreshCurrentView();
+        if (document.getElementById('allStockBox').style.display === 'block') renderAllStockTable();
     } catch (err) { alert('操作失败: ' + err.message); }
-}
-
-// 刷新当前视图，保持搜索条件
-function refreshCurrentView() {
-    const deviceKw = document.getElementById('searchDevice').value.trim();
-    const spKw = document.getElementById('searchSp').value.trim();
-    if (deviceKw === '' && spKw === '') {
-        const filtered = allStockData.filter(item => item.num <= item.low_warn);
-        renderStockTable(filtered);
-    } else {
-        const filtered = allStockData.filter(item => {
-            const matchDev = deviceKw === '' || String(item.device).toLowerCase().includes(deviceKw.toLowerCase());
-            const matchSp = spKw === '' || String(item.sp_name).toLowerCase().includes(spKw.toLowerCase()) || String(item.model).toLowerCase().includes(spKw.toLowerCase());
-            return matchDev && matchSp;
-        });
-        renderStockTable(filtered);
-    }
 }
 
 async function addHistoryRecord(spName, model, device, type, changeStr, note) {
@@ -529,6 +537,7 @@ async function addStock() {
         document.getElementById('position').value = '';
         await loadStockData();
         refreshCurrentView();
+        if (document.getElementById('allStockBox').style.display === 'block') renderAllStockTable();
     } catch (err) { alert('添加失败: ' + err.message); }
 }
 
@@ -543,6 +552,7 @@ async function batchDelete() {
         showToast('批量删除完成');
         await loadStockData();
         refreshCurrentView();
+        if (document.getElementById('allStockBox').style.display === 'block') renderAllStockTable();
     } catch (err) { alert('删除失败: ' + err.message); }
 }
 
@@ -594,6 +604,7 @@ async function editArea(idx, oldName) {
             await loadAreas();
             await loadStockData();
             refreshCurrentView();
+            if (document.getElementById('allStockBox').style.display === 'block') renderAllStockTable();
             showToast('分区已更新');
         } catch (err) { alert('更新失败: ' + err.message); }
     }
@@ -638,11 +649,13 @@ function renderAllStockTable() {
     if (!tb) return;
     tb.innerHTML = allStockData.map(item => {
         const warnFlag = item.num <= item.low_warn;
-        return `<td>${escapeHtml(item.id)}</td><td>${escapeHtml(item.ware_area || '')}</td><td>${escapeHtml(item.device)}</td>
+        return `<tr>
+            <td>${escapeHtml(item.id)}</td><td>${escapeHtml(item.ware_area || '')}</td><td>${escapeHtml(item.device)}</td>
             <td>${escapeHtml(item.sp_name)}</td><td>${escapeHtml(item.model || '')}</td>
             <td class="${warnFlag ? 'warn-red' : ''}">${item.num}</td><td>${item.low_warn}</td>
             <td>${escapeHtml(item.position || '')}</td>
-            <td><button class="btn-edit-text btn-sm" data-id="${item.id}">修改</button></td>`;
+            <td><button class="btn-edit-text btn-sm" data-id="${item.id}">修改</button></td>
+        </tr>`;
     }).join('');
     tb.querySelectorAll('button').forEach(btn => {
         btn.onclick = () => openEditModal(btn.getAttribute('data-id'));
@@ -686,6 +699,7 @@ async function saveEditInfo() {
         showToast('修改成功');
         await loadStockData();
         refreshCurrentView();
+        if (document.getElementById('allStockBox').style.display === 'block') renderAllStockTable();
     } catch (err) { alert('修改失败: ' + err.message); }
 }
 
@@ -721,6 +735,7 @@ async function importExcelData(event) {
         document.getElementById('importFile').value = '';
         await loadStockData();
         refreshCurrentView();
+        if (document.getElementById('allStockBox').style.display === 'block') renderAllStockTable();
     };
     reader.readAsArrayBuffer(file);
 }
