@@ -788,7 +788,7 @@ function renderAllStockTable() {
             if (e.target.type === 'checkbox' || e.target.tagName === 'BUTTON') return;
             fillOperInfo(sorted[idx]);
         };
-    };
+    });
 }
 
 // 批量删除按钮：第一次点击进入选择模式（显示勾选框），再次点击退出并隐藏勾选框
