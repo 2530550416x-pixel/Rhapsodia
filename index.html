@@ -21,6 +21,8 @@ h2{text-align:center;color:#1e466e;margin-bottom:16px;font-weight:600;font-size:
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center}
 input,select,textarea{flex:1;min-width:120px;padding:8px 10px;border:1px solid #cfdee9;border-radius:8px;outline:none;font-size:13px}
 input:focus,select:focus,textarea:focus{border-color:#3498db;box-shadow:0 0 0 2px rgba(52,152,219,0.2)}
+.ro-field{background:#f7f9fb;color:#2c3e50;cursor:default}
+.ro-field:focus{border-color:#cfdee9;box-shadow:none}
 textarea{resize:none;height:55px}
 button{padding:6px 12px;border:none;border-radius:8px;cursor:pointer;color:#fff;font-size:12px;font-weight:500;transition:all 0.2s}
 button:active{transform:scale(0.96)}
@@ -111,7 +113,12 @@ tr:hover{background:#fef9e6}
         <div class="box">
             <div class="title">📥 入库 / 出库</div>
             <div class="row">
-                <input type="text" id="editId" placeholder="料码(点击行自动填充)" readonly>
+                <input type="text" id="editId" placeholder="料码(点击行自动填充)" readonly class="ro-field">
+                <input type="text" id="editSpName" placeholder="备件名" readonly class="ro-field">
+                <input type="text" id="editModel" placeholder="型号" readonly class="ro-field">
+                <input type="text" id="editPosition" placeholder="位置" readonly class="ro-field">
+            </div>
+            <div class="row">
                 <input type="number" id="changeNum" placeholder="数量" min="1">
                 <textarea id="operRemark" placeholder="备注(必填)"></textarea>
             </div>
@@ -119,7 +126,7 @@ tr:hover{background:#fef9e6}
                 <button class="btn-add" id="stockInBtn">📦 增补入库</button>
                 <button class="btn-out" id="stockOutBtn">📤 领用出库</button>
             </div>
-            <div style="font-size:10px;color:#6c757d;margin-top:5px">💡 点击表格行自动选中该备件的料码</div>
+            <div style="font-size:10px;color:#6c757d;margin-top:5px">💡 点击表格行自动填充料码、备件名、型号、位置</div>
         </div>
 
         <div class="box">
@@ -385,6 +392,15 @@ async function loadHistoryData() {
     }
 }
 
+// 点击表格行后，把该备件的料码/备件名/型号/位置填入入库出库区
+function fillOperInfo(item) {
+    if (!item) return;
+    document.getElementById('editId').value = item.id || '';
+    document.getElementById('editSpName').value = item.sp_name || '';
+    document.getElementById('editModel').value = item.model || '';
+    document.getElementById('editPosition').value = item.position || '';
+}
+
 // 渲染查询结果表格
 function renderStockTable(list) {
     const tbody = document.getElementById('stockTable');
@@ -410,7 +426,7 @@ function renderStockTable(list) {
         `;
         tr.onclick = (e) => {
             if (e.target.type !== 'checkbox') {
-                document.getElementById('editId').value = item.id;
+                fillOperInfo(item);
                 showToast(`已选中: ${item.sp_name}`);
             }
         };
@@ -767,6 +783,12 @@ function renderAllStockTable() {
         };
     });
     if (checkAllBox) checkAllBox.checked = sorted.length > 0 && selectedStockIds.size === sorted.length;
+    tb.querySelectorAll('tr').forEach((tr, idx) => {
+        tr.onclick = (e) => {
+            if (e.target.type === 'checkbox' || e.target.tagName === 'BUTTON') return;
+            fillOperInfo(sorted[idx]);
+        };
+    };
 }
 
 // 批量删除按钮：第一次点击进入选择模式（显示勾选框），再次点击退出并隐藏勾选框
